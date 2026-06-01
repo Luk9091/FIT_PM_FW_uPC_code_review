@@ -1,10 +1,13 @@
 #include "ATxmega128A3Udef.inc"
 
-#define ERROR_REGISTER      GPIO_GPIOR0
-#define ERROR_CODE_         1 << 0  // unknown error code
-#define ERROR_CODE_         1 << 1  // unknown error code
-#define ERROR_CODE_         1 << 2  // unknown error code
-#define ERROR_CODE_         1 << 3  // unknown error code
+#define UPDATE_ERROR_STATUS_REGISTER        GPIO_GPIOR0
+#define UPDATE_CODE_SYS_FAIL                1 << 0
+#define UPDATE_CODE_CLK                     1 << 1
+#define UPDATE_CODE_                        1 << 2  // unknown error code
+#define UPDATE_CODE_                        1 << 3  // unknown error code
+
+#define SERIAL_RECV_MSG_LEN 0x2005
+#define FPGA_COMMUNICATION_FLAG 0x2006 // WIP
 
 
 #define POWER_NOK_bm        0x2157
@@ -617,7 +620,7 @@ LAB_code_00033d:
     cli
     sts         PORTE_OUTCLR,R16
 LAB_code_000349:
-    sbi         ERROR_REGISTER,0x1
+    sbi         UPDATE_ERROR_STATUS_REGISTER,0x1                ; UPDATE CLK
     rcall       set_status_and_vd8_led                         ;undefined FUN_code_00063f(void)
     bset        CPU_I_bp
     eor         R16,R16
@@ -689,7 +692,7 @@ LAB_code_000383:
     eor         R16,R16
     st          Z,R16
     cli
-    call        fpga_send_mcu_ts                         ;undefined FUN_code_001298(void)
+    call        fpga_send_mcu_timestamp                         ;undefined FUN_code_001298(void)
     bset        CPU_I_bp
     rcall       fpga_settings_init                         ;undefined FUN_code_000472(void)
 LAB_code_000398:
@@ -700,16 +703,16 @@ LAB_code_000398:
     cpc         R25,R16
     brbc        CPU_Z_bp, LAB_code_0003aa
     cli
-    sbis        ERROR_REGISTER,0x0
-    rjmp        LAB_code_0003a4
-    ldi         R16,0x1
-    sts         PORTA_OUTTGL,R16
-LAB_code_0003a4:
-    sbis        ERROR_REGISTER,0x2
-    rjmp        LAB_code_0003a9
-    ldi         R16,0x20
-    sts         PORTA_OUTTGL,R16
-LAB_code_0003a9:
+    sbis        UPDATE_ERROR_STATUS_REGISTER,0x0  ;
+    rjmp        LAB_code_0003a4     ;   if (UPDATE_ERROR_STATUS_REGISTER  & 1 << 0 ) { if SYS_FAIL
+    ldi         R16,0x1             ;
+    sts         PORTA_OUTTGL,R16    ;
+LAB_code_0003a4:                    ;   }
+    sbis        UPDATE_ERROR_STATUS_REGISTER,0x2  ;
+    rjmp        LAB_code_0003a9     ;   if (UPDATE_ERROR_STATUS_REGISTER & 1 << 1) // if CLOCK IN
+    ldi         R16,0x20            ;
+    sts         PORTA_OUTTGL,R16    ;
+LAB_code_0003a9:                    ;   }
     bset        CPU_I_bp
 LAB_code_0003aa:
     sbiw        R24,0x1
@@ -719,12 +722,12 @@ LAB_code_0003aa:
     rjmp        LAB_code_00045f
 LAB_code_0003af:
     cli
-    sbis        ERROR_REGISTER,0x0
+    sbis        UPDATE_ERROR_STATUS_REGISTER,0x0
     rjmp        LAB_code_0003b5
     ldi         R16,0x1
     sts         PORTA_OUTTGL,R16
 LAB_code_0003b5:
-    sbis        ERROR_REGISTER,0x2
+    sbis        UPDATE_ERROR_STATUS_REGISTER,0x2
     rjmp        LAB_code_0003ba
     ldi            R16,0x20
     sts         PORTA_OUTTGL,R16
@@ -762,16 +765,16 @@ LAB_code_0003d0:
     andi        R16,0xf9
     or          R16,R17
     sts         0x2157,R16
-    sbic        ERROR_REGISTER,0x1
+    sbic        UPDATE_ERROR_STATUS_REGISTER,0x1
     rjmp        LAB_code_0003e6
     cpi         R17,0x6
     brbc        CPU_Z_bp, LAB_code_0003e1
-    sbi         ERROR_REGISTER,0x1
+    sbi         UPDATE_ERROR_STATUS_REGISTER,0x1
     rjmp        LAB_code_0003e5
 LAB_code_0003e1:
     and         R17,R17
     brbs        CPU_Z_bp, LAB_code_0003e5
-    sbi         ERROR_REGISTER,0x0
+    sbi         UPDATE_ERROR_STATUS_REGISTER,0x0
     rjmp        LAB_code_0003e6
 LAB_code_0003e5:
     rcall       set_status_and_vd8_led                         ;undefined FUN_code_00063f(void)
@@ -801,7 +804,7 @@ LAB_code_0003e7:
     call        fpga_msg_send_t2                         ;undefined FUN_code_001187(void)
     bset        CPU_I_bp
 LAB_code_0003ff:
-    sbic        ERROR_REGISTER,0x3
+    sbic        UPDATE_ERROR_STATUS_REGISTER,0x3
     rjmp        LAB_code_00045f
     ldi         R18,0x7d
     cli
@@ -1185,6 +1188,7 @@ PORTB_INT0_vect_isr:        ; ths788_ot_alarm
 ;************************************************************************************************
 ;undefined FUN_code_000570(void)
 .org (0x0570 << 1)
+; TODO: Here
 PORTF_INT1_vect_isr:
     push        ZH
     in          ZH,CPU_SREG
@@ -1218,18 +1222,18 @@ LAB_code_000585:
     sbrs        R19,0x1
     rjmp        LAB_code_000598
     sts         PORTA_OUTCLR,R16                ;= ??
-    cbi         ERROR_REGISTER,0x2
+    cbi         UPDATE_ERROR_STATUS_REGISTER,0x2
     rjmp        LAB_code_0005a1
 LAB_code_000598:
     sbrs        R19,0x2
     rjmp        LAB_code_00059b
-    sbi         ERROR_REGISTER,0x2
+    sbi         UPDATE_ERROR_STATUS_REGISTER,0x2
 LAB_code_00059b:
     sbrs        R19,0x3
     rjmp        LAB_code_0005a1
     ldi         R16,0x20
     sts         PORTA_OUTSET,R16                ;= ??
-    cbi         ERROR_REGISTER,0x2
+    cbi         UPDATE_ERROR_STATUS_REGISTER,0x2
 LAB_code_0005a1:
     brbc        CPU_T_bp,LAB_code_0005a9
     ldi         R16,0xa
@@ -1301,7 +1305,7 @@ PORTE_INT0_vect_isr:        ; ps_change_detected
     rjmp        LAB_code_0005eb
     ldi         R16,0x4
     sts         PORTE_OUTCLR,R16                ;= ??
-    sbi         ERROR_REGISTER,0x1
+    sbi         UPDATE_ERROR_STATUS_REGISTER,0x1
     rcall       system_deinit                         ;undefined FUN_code_00064b(void)
     rjmp        LAB_code_00060e
 LAB_code_0005eb:
@@ -1312,7 +1316,7 @@ LAB_code_0005ed:
     sts         0x215b,R16                   ;= ??
     sts         0x215c,R17                   ;= ??
     sts         0x215d,R18                   ;= ??
-    cbi         ERROR_REGISTER,0x1
+    cbi         UPDATE_ERROR_STATUS_REGISTER,0x1
     rjmp        LAB_code_00060e
 LAB_code_0005f6:
     sbrs        R18,0x3
@@ -1335,7 +1339,7 @@ LAB_code_0005f6:
 LAB_code_00060b:
     rcall       system_deinit                         ;undefined FUN_code_00064b(void)
     brbc        CPU_T_bp,LAB_code_00060f
-    sbi         ERROR_REGISTER,0x1
+    sbi         UPDATE_ERROR_STATUS_REGISTER,0x1
 LAB_code_00060e:
     rcall       set_status_and_vd8_led                         ;undefined FUN_code_00063f(void)
 LAB_code_00060f:
@@ -1351,8 +1355,8 @@ LAB_code_00060f:
 ;undefined FUN_code_000615()
 .org (0x0615 << 1)
 PORTE_INT1_vect_isr:           ; fpga_comm_request
-    push        ZH
-    in          ZH,CPU_SREG
+    push        R31
+    in          R31,CPU_SREG    ; copy SREG
     push        R16
     push        R17
     push        R18
@@ -1384,8 +1388,8 @@ LAB_code_000639:
     pop         R18
     pop         R17
     pop         R16
-    out         CPU_SREG,ZH
-    pop         ZH
+    out         CPU_SREG,R31
+    pop         R31
     reti
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
@@ -1393,17 +1397,17 @@ LAB_code_000639:
 ;undefined FUN_code_00063f(void)
 .org (0x063f << 1)
 set_status_and_vd8_led:
-    sbic        ERROR_REGISTER,0x1
-    rjmp        LAB_code_000646
-    cbi         ERROR_REGISTER,0x0
-    ldi         R16,0x1
-    sts         PORTA_OUTSET,R16                ;= ??
-    ret
-LAB_code_000646:
-    ldi         R16,0x1
-    sts         PORTA_OUTCLR,R16                ;= ??
-    cbi         ERROR_REGISTER,0x0
-    ret
+    sbic        UPDATE_ERROR_STATUS_REGISTER,0x1                ;
+    rjmp        LAB_code_000646                                 ; if (!clock) {
+    cbi         UPDATE_ERROR_STATUS_REGISTER,0x0                ;   UPDATE_ERROR_STATUS_REGISTER |= 1 << 0
+    ldi         R16,0x1                                         ;
+    sts         PORTA_OUTSET,R16                                ;   disable LED_SYS_FAIL
+    ret                                                         ;   return;
+LAB_code_000646:                                                ; } else {
+    ldi         R16,0x1                                         ;
+    sts         PORTA_OUTCLR,R16                                ;   enable LED_SYS_FAIL
+    cbi         UPDATE_ERROR_STATUS_REGISTER,0x0                ;   UPDATE_ERROR_STATUS_REGISTER |= 1 << 0
+    ret                                                         ; }
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
@@ -1411,9 +1415,9 @@ LAB_code_000646:
 .org (0x064b << 1)
 system_deinit:
     eor         R16,R16
-    sts         0x215c,R16                   ;= ??
-    sts         0x215d,R16                   ;= ??
-    sts         0x215b,R16                   ;= ??
+    sts         0x215C,R16                   ;= ??
+    sts         0x215D,R16                   ;= ??
+    sts         0x215B,R16                   ;= ??
     sts         0x2159,R16                   ;= ??
     sts         0x2441,R16                   ;= ??
     sts         0x2006,R16                   ;= ??
@@ -1569,23 +1573,23 @@ LAB_code_0006f8:
 ;undefined FUN_code_000710(void)
 .org (0x0710 << 1)
 PORTF_INT0_vect_isr:
-    push        ZH
-    in          ZH,CPU_SREG
+    push        R31
+    in          R31,CPU_SREG
     push        ZH
     push        ZL
-    push        YH
+    push        R29
     push        R18
     push        R17
     push        R16
-    ldi         ZL,0x4
-    ldi         ZH,0x20
-    eor         YH,YH
-    lds         R16,PORTF_IN                    ;= ??
-    sbrc        R16,0x1
-    rjmp        LAB_code_00073a
-    inc         YH
-    ld          R17,-Z
-    ld          R16,-Z
+    ldi         ZL,0x04
+    ldi         ZH,0x20                         ; Z = 0x2004
+    eor         R29,R29                         ;
+    lds         R16,PORTF_IN                    ; Read Console CTS
+    sbrc        R16,0x1                         ; if (Console_CTS == 0)
+    rjmp        LAB_code_00073a                 ;   return
+    inc         R29                             ; R29 = 1
+    ld          R17,-Z                          ; R17 = *(0x2003)
+    ld          R16,-Z                          ; R16 = *(0x2002)
     cp          R16,R17
     brbs        CPU_Z_bp, LAB_code_000739
     lds         R18,USARTF0_STATUS              ;= ??
@@ -1599,9 +1603,9 @@ PORTF_INT0_vect_isr:
     adc         ZH,R17
     ld          R17,Z
     sts         USARTF0_DATA,R17                     ;= ??
-    ldi         ZL,0x2
-    ldi         ZH,0x20
-    st          Z,R16
+    ldi         ZL,0x02
+    ldi         ZH,0x20                         ; Z = 0x2002
+    st          Z,R16                           ;
 LAB_code_000734:
     lds         R18,USARTF0_CTRLA               ;= ??
     ori         R18,0x2
@@ -1609,11 +1613,11 @@ LAB_code_000734:
 LAB_code_000739:
     adiw        Z,0x2
 LAB_code_00073a:
-    st          Z,YH
+    st          Z,R29
     pop         R16
     pop         R17
     pop         R18
-    pop         YH
+    pop         R29
     pop         ZL
     pop         ZH
     out         CPU_SREG,ZH
@@ -1623,7 +1627,27 @@ LAB_code_00073a:
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
 ;undefined FUN_code_000744(void)
+; Send character via interrupt
 .org (0x0744 << 1)
+; NOTE: I guess
+
+; // Global:
+; uint8_t SEND_MESSAGE_SIZE  = *(0x2003);
+; uint8_t SEND_BUFFER_SIZE   = *(0x2004);
+; uint8_t SEND_CURRENT_CHAR  = *(0x2002);
+
+; char SEND_buffer[SEND_BUFFER_SIZE]; // First address 0x2047
+;
+; ISR(USARTF0_DRE_vect){
+;   if (SEND_MESSAGE_SIZE == 0 || SEND_CURRENT_CHAR == SEND_BUFFER_SIZE) {
+;       disable_this_interrupt();
+;       return;
+;   }
+;
+;   char c = SEND_buffer[SEND_CURRENT_CHAR];
+;   transmit_char(c);
+;   SEND_CURRENT_CHAR++;
+; }
 USARTF0_DRE_vect_isr:
     push        ZH
     in          ZH,CPU_SREG
@@ -1634,31 +1658,31 @@ USARTF0_DRE_vect_isr:
     push        R17
     push        R16
     ldi         ZL,0x2
-    ldi         ZH,0x20
-    ld          R16,Z+
-    ld          R17,Z+
-    ld          R18,Z
+    ldi         ZH,0x20                     ; Z = 0x2002
+    ld          R16,Z+                      ; R16 = *(0x2002), Z++
+    ld          R17,Z+                      ; R17 = *(0x2003), Z++
+    ld          R18,Z                       ; R18 = *(0x2004)
     and         R18,R18
-    brbs        CPU_Z_bp, LAB_code_000755
-    cp          R16,R17
-    brbc        CPU_Z_bp, LAB_code_00075b
-LAB_code_000755:
-    lds         R19,USARTF0_CTRLA               ;= ??
-    andi        R19,0xfc
-    sts         USARTF0_CTRLA,R19               ;= ??
-    rjmp        LAB_code_000767
-LAB_code_00075b:
-    inc         R16
-    eor         R17,R17
+    brbs        CPU_Z_bp, LAB_code_000755   ; if (
+    cp          R16,R17                     ;   *0x2004 == 0
+    brbc        CPU_Z_bp, LAB_code_00075b   ;   || *(0x2002) == *(0x2003)
+LAB_code_000755:                            ; ) {
+    lds         R19,USARTF0_CTRLA           ; Disable interrupts from DRE
+    andi        R19,0xfc                    ;
+    sts         USARTF0_CTRLA,R19           ;
+    rjmp        LAB_code_000767             ; return
+LAB_code_00075b:                            ; }
+    inc         R16                         ; R16++
+    eor         R17,R17                     ; R17 = 0
     ldi         ZL,0x47
-    ldi         ZH,0x20
-    add         ZL,R16
+    ldi         ZH,0x20                     ; Z = 0x2047
+    add         ZL,R16                      ; Z += R16
     adc         ZH,R17
-    ld          R17,Z
-    sts         USARTF0_DATA,R17                     ;= ??
+    ld          R17,Z                       ; R17 = char
+    sts         USARTF0_DATA,R17            ; Send char from 0x2047
     ldi         ZL,0x2
-    ldi         ZH,0x20
-    st          Z,R16
+    ldi         ZH,0x20                     ; Z = 0x2002
+    st          Z,R16                       ; *0x2002 = R16
 LAB_code_000767:
     pop         R16
     pop         R17
@@ -1673,6 +1697,25 @@ LAB_code_000767:
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
 ;undefined FUN_code_000770(void)
+; NOTE: I gueess
+
+; uint8_t RECV_CURRENT_CHAR = *(0x2001)
+; uint8_t RECV_MESSAGE_SIZE = *(0x2000)
+; char *RECV_buffer = *0x2007
+;
+; ISR(USARTF0_RXC_vect){
+;   if (RECV_CURRENT_CHAR == RECV_MESSAGE_SIZE) {
+;       set_ready_to_receive(false);
+;       SERIAL_RECV_MSG_LEN |= 0x80;
+;   }
+;   if (USARTF0_STATUS & 1 << 4) { // if error
+;       return
+;   }
+;   char c = USARTF0_DATA
+;   RECV_buffor[RECV_CURRENT_CHAR] = c;
+;   if (c != 'r')
+;       SERIAL_RECV_MSG_LEN++;
+; }
 .org (0x770 << 1)
 USARTF0_RXC_vect_isr:
     push        ZH
@@ -1683,41 +1726,41 @@ USARTF0_RXC_vect_isr:
     push        R18
     push        R17
     push        R16
-    ldi         ZL,0x0
-    ldi         ZH,0x20
-    ld          R16,Z+
-    ld          R17,Z
-    inc         R17
-    andi        R17,0x3f
-    mov         R18,R17
-    subi        R18,0xec
-    andi        R18,0x3f
-    cp          R18,R16
-    brbc        CPU_Z_bp, LAB_code_00078b
-    ldi         R18,0x1
-    sts         PORTF_OUTSET,R18                ;= ??
-    lds         R18,0x2005                   ;= ??
-    ori         R18,0x80
-    sts         0x2005,R18                   ;= ??
+    ldi         ZL,0x00
+    ldi         ZH,0x20                         ; Z = 2000
+    ld          R16,Z+                          ; R16 = *(0x2000), Z++
+    ld          R17,Z                           ; R17 = *(0x2001)
+    inc         R17                             ; R17++
+    andi        R17,0x3f                        ; R17 & 0b0111'1111
+    mov         R18,R17                         ;
+    subi        R18,0xec                        ;
+    andi        R18,0x3f                        ; R18 = (R17 - 0xEC) && 0b0111'1111
+    cp          R18,R16                         ; if (RECV_CURRENT_CHAR == RECV_MESSAGE_SIZE){
+    brbc        CPU_Z_bp, LAB_code_00078b       ;
+    ldi         R18,0x1                         ; Initialize receive transaction
+    sts         PORTF_OUTSET,R18                ; Unready to receive new data
+    lds         R18,SERIAL_RECV_MSG_LEN         ;
+    ori         R18,0x80                        ;
+    sts         SERIAL_RECV_MSG_LEN,R18         ; }
 LAB_code_00078b:
-    lds         R19,USARTF0_STATUS              ;= ??
-    lds         R18,USARTF0_DATA                     ;= ??
-    sbrc        R19,0x4
-    rjmp        LAB_code_0007a1
-    cp          R16,R17
-    brbs        CPU_Z_bp, LAB_code_0007a1
-    st          Z,R17
-    ldi         ZL,0x7
-    ldi         ZH,0x20
-    eor         R16,R16
-    add         ZL,R17
-    adc         ZH,R16
-    st          Z,R18
-    cpi         R18,0xd
-    brbc        CPU_Z_bp, LAB_code_0007a1
-    lds         R16,0x2005                   ;= ??
-    inc         R16
-    sts         0x2005,R16                   ;= ??
+    lds         R19,USARTF0_STATUS              ;
+    lds         R18,USARTF0_DATA                ; char c = USARTF0_DATA;
+    sbrc        R19,0x4                         ;
+    rjmp        LAB_code_0007a1                 ; if (USARTF0_STATUS && 1<<4) {
+    cp          R16,R17                         ; if (R16 == R17)
+    brbs        CPU_Z_bp, LAB_code_0007a1       ;   return
+    st          Z,R17                           ;
+    ldi         ZL,0x07                         ;
+    ldi         ZH,0x20                         ;
+    eor         R16,R16                         ;
+    add         ZL,R17                          ;
+    adc         ZH,R16                          ;
+    st          Z,R18                           ; RECV_buffor[RECV_CURRENT_CHAR] = c;
+    cpi         R18,'\r'                        ; if (c == '\r') return;
+    brbc        CPU_Z_bp, LAB_code_0007a1       ;
+    lds         R16,SERIAL_RECV_MSG_LEN         ;
+    inc         R16                             ; SERIAL_RECV_MSG_LEN++;
+    sts         SERIAL_RECV_MSG_LEN,R16         ; }
 LAB_code_0007a1:
     pop         R16
     pop         R17
@@ -1840,7 +1883,7 @@ wait_unitl_pll_run:                             ; while (OSC_STATUS & (1 << 4)) 
 
     ; USART configuration
     ldi         R16,0x1
-    sts         PORTF_OUTSET,R16                ; Disable console reset
+    sts         PORTF_OUTSET,R16                ; Unready to receive data
 
     ldi         R16,0xd0                        ; USART baud rate
     sts         USARTF0_BAUDCTRLB,R16           ; BSCALE = -3 BSEL = 0x83 CLK2X as default = 0
@@ -1890,26 +1933,26 @@ clear_RAM:
     lds         R16,PORTF_IN                    ; NOTE serial is available
     sbrs        R16,0x1                         ; if (!PIN MCU_Console_CTS)
     inc         R25                             ; R25 = 1
-    sts         0x2004,R25                      ; NOTE: bool Serial_readyToSend = !PIN MCU_Console_CTS
+    sts         0x2004,R25                      ; NOTE bool Serial_readyToSend = !PIN MCU_Console_CTS
 
     lds         R16,PORTE_IN                    ; NOTE Power in OK
     bst         R16,0x1                         ; T = PORTE & 0x02
     eor         R16,R16                         ; set R16 to 0
     bld         R16,0x0                         ; R16 b0 = PORTE_IN && 2 >> 1
-    sts         0x2157,R16                      ; NOTE: bool power_nok = PORTE && 2 >> 1
+    sts         0x2157,R16                      ; NOTE bool power_nok = PORTE && 2 >> 1
 
-    brbs        CPU_T_bp,power_is_not_ok        ; if (!power_nok) {
-    sbi         ERROR_REGISTER,0x1              ;
+    brbs        CPU_T_bp,power_is_not_ok        ; if (!power_nok) { // if power is ok
+    sbi         UPDATE_ERROR_STATUS_REGISTER,0x1              ;   UPDATE_ERROR_STATUS_REGISTER |= 1 << 1 //
     ldi         R16,0x1                         ;
     sts         PORTA_OUTCLR,R16                ;   disable LED_SYS_FAIL
     rjmp        post_power_check                ;
-power_is_not_ok:                                ; } else {
-    ldi         R16,0x1                         ;
-    sts         0x215b,R16                      ;
-    ldi         R16,0xd0                        ;
-    sts         0x215c,R16                      ;
-    ldi         R16,0x7                         ;
-    sts         0x215d,R16                      ;
+power_is_not_ok:                                ; } else { // if power is NOT ok
+    ldi         R16,0x1                         ; ???
+    sts         0x215b,R16                      ; ???
+    ldi         R16,0xd0                        ; ???
+    sts         0x215c,R16                      ; ???
+    ldi         R16,0x7                         ; ???
+    sts         0x215d,R16                      ; ???
                                                 ; }
 post_power_check:
     ldi         R16,0xe8
@@ -1923,46 +1966,51 @@ post_power_check:
     ldi         R16,0x3
     sts         PMIC_CTRL,R16                   ; Enable interrupt level LOW and MID
     call        adt7311_faults_clr              ; Clear spi
-    ldi         R16,0x8
-    ldi         R17,0x50
-    call        adt7311_8bit_rw                 ; defined FUN_code_0012cc(void)
-    ldi         R16,0x20
+    ldi         R16,0x8                         ; ADT7311 reg address: 0x01 | R/W = W
+    ldi         R17,0x50                        ; Resolution 13 bit, mode = 1 SPS, Comparator mode
+    call        adt7311_8bit_rw                 ; adt7311_8bit_rw(address: 0x08, data: 0x50)
+    ldi         R16,0x20                        ; Address: 0x04 | critical over temperature limit
+    ldi         R17,0x0                         ;
+    ldi         R18,0x23                        ; 0x2300 >> 7 = 70 -- overheated limit at 70C
+    call        adt7311_16bit_rw                ; adt7311_16bit_rw(address: 0x20, data: 0x23 << 8 | 0x00)
+    ldi         R16,0x30                        ; address: 0x06 | over temperature limit
     ldi         R17,0x0
-    ldi         R18,0x23
-    call        adt7311_16bit_rw                ;undefined FUN_code_0012df(void)
-    ldi         R16,0x30
-    ldi         R17,0x0
-    ldi         R18,0x1e
-    call        adt7311_16bit_rw                ;undefined FUN_code_0012df(void)
-    ldi         ZL,0x63
-    ldi         ZH,0x21
-    ldi         YL,0x0
-    ldi         YH,0x10
-    ldi         R17,0x22
-LAB_code_000895:
-    ld          R16,Y+
-    st          Z+,R16
-    cpi         ZL,0x35
-    cpc         ZH,R17
-    brbc        CPU_Z_bp, LAB_code_000895
-    cbi         ERROR_REGISTER,0x3
-    bset        CPU_I_bp
-    ldi         ZL,0x62
-    ldi         ZH,0x29
-    call        cli_send_msg                         ;undefined FUN_code_001413(void)
-    ldi         R16,0x1
-    sts         PORTF_OUTCLR,R16                ;= ??
+    ldi         R18,0x1e                        ; 0x1E00 >> 7 = 60 | overheated limit
+    call        adt7311_16bit_rw                ; adt7311_16bit_rw(address: 0x30, data: 0x1E00)
+
+
+    ldi         ZL,0x63                         ; Z = 0x2163
+    ldi         ZH,0x21                         ; Y = 0x1000 // EEPROM address
+    ldi         YL,0x0                          ;
+    ldi         YH,0x10                         ;
+    ldi         R17,0x22                        ;
+COPY_FROM_EEPROM:                               ; Copy from EEPROM to RAM 210 bytes
+    ld          R16,Y+                          ;
+    st          Z+,R16                          ;
+    cpi         ZL,0x35                         ;
+    cpc         ZH,R17                          ;
+    brbc        CPU_Z_bp, COPY_FROM_EEPROM      ; if Z != 0x2235 jump
+
+    cbi         UPDATE_ERROR_STATUS_REGISTER,0x3              ; UPDATE_ERROR_STATUS_REGISTER |= 1 << 3
+    bset        CPU_I_bp                        ; Enable interrupt
+
+    ldi         ZL,0x62                         ;
+    ldi         ZH,0x29                         ;
+    call        cli_send_msg                    ; Send: "\r\nPMxx control interface ready\r\n"
+    ldi         R16,0x1                         ;
+    sts         PORTF_OUTCLR,R16                ; Release Console reset
+
 LAB_code_0008a3:
-    lds         R16,0x2006                   ;= ??
-    and         R16,R16
-    brbs        CPU_Z_bp, LAB_code_0008a8
-    rcall       fpga_data_exchange                         ;undefined FUN_code_0008ae(void)
-LAB_code_0008a8:
-    lds         R16,0x2005                   ;= ??
-    and         R16,R16
-    brbs        CPU_Z_bp, LAB_code_0008a3
-    rcall       cli_prompt_parse                         ;undefined FUN_code_000975(void)
-    rjmp        LAB_code_0008a3
+    lds         R16,0x2006                      ;
+    and         R16,R16                         ;
+    brbs        CPU_Z_bp, LAB_code_0008a8       ; if 0x2006 == 0 goto fpga_data_exchange
+    rcall       fpga_data_exchange              ;
+LAB_code_0008a8:                                ;
+    lds         R16,SERIAL_RECV_MSG_LEN      ;
+    and         R16,R16                         ;
+    brbs        CPU_Z_bp, LAB_code_0008a3       ; if (SERIAL_RECV_MSG_LEN != 0){
+    rcall       cli_prompt_parse                ;   cli_prompt_parse()
+    rjmp        LAB_code_0008a3                 ; }
 
 
 
@@ -1982,7 +2030,7 @@ LAB_code_0008b6:
     bset        CPU_I_bp
     ret
 LAB_code_0008b8:
-    call        FUN_code_0011e5                         ;undefined FUN_code_0011e5(void)
+    call        FUN_code_0011e5                ;
     bset        CPU_I_bp
     ldi         R18,0x80
     ldi         YL,0xcf
@@ -2186,7 +2234,7 @@ LAB_code_000974:
 .org (0x0975 << 1)
 cli_prompt_parse:
     andi        R16,0x7f
-    sts         0x2005,R16                   ;= ??
+    sts         SERIAL_RECV_MSG_LEN,R16                   ;= ??
     call        cli_get_next_char                         ;undefined FUN_code_00141e(void)
     cpi         R16,'C'
     brbc        CPU_Z_bp, LAB_code_000984
@@ -2378,7 +2426,7 @@ LAB_code_000a25:
     sts         0x215c,R16                   ;= ??
     ldi         R16,0x7
     sts         0x215d,R16                   ;= ??
-    cbi         ERROR_REGISTER,0x1
+    cbi         UPDATE_ERROR_STATUS_REGISTER,0x1
     ldi         R16,0x41
     sts         PORTA_OUTSET,R16                ;= ??
     bset        CPU_I_bp
@@ -2393,7 +2441,7 @@ LAB_code_000a3c:
     call        cli_get_next_char                         ;undefined FUN_code_00141e(void)
     cpi         R16,0xd
     brbc        CPU_Z_bp, LAB_code_000a3b
-    rcall       FUN_code_00108e                         ;undefined FUN_code_00108e(void)
+    rcall       check_fpga_is_ready                         ;undefined FUN_code_00108e(void)
     brbc        CPU_C_bp, LAB_code_000a43
     ret
 LAB_code_000a43:
@@ -2442,7 +2490,7 @@ LAB_code_000a6c:
     brbs        CPU_C_bp, LAB_code_000a6b
     cpi         R16,0xd
     brbc        CPU_Z_bp, LAB_code_000a6b
-    rcall       FUN_code_00108e                         ;undefined FUN_code_00108e(void)
+    rcall       check_fpga_is_ready                         ;undefined FUN_code_00108e(void)
     brbc        CPU_C_bp, LAB_code_000a78
     ret
 LAB_code_000a78:
@@ -2641,7 +2689,7 @@ FUN_code_000b3f:
     sts         SPIE_CTRL,R16                        ;= ??
     ldi         R16,0xb0
     sts         PORTE_DIRCLR,R16                ;= ??
-    cbi         ERROR_REGISTER,0x1
+    cbi         UPDATE_ERROR_STATUS_REGISTER,0x1
     ldi         R16,0x1
     sts         PORTA_OUTSET,R16                ;= ??
     ldi         R16,0x2
@@ -2918,7 +2966,7 @@ cli_send_ch_mean_amplitude:
     rcall       cli_get_next_char                         ;undefined FUN_code_00141e(void)
     cpi         R16,0xd
     brbc        CPU_Z_bp, LAB_code_000c87
-    rcall       FUN_code_00108e                         ;undefined FUN_code_00108e(void)
+    rcall       check_fpga_is_ready                         ;undefined FUN_code_00108e(void)
     brbc        CPU_C_bp, LAB_code_000c4d
     ret
 LAB_code_000c4d:
@@ -2949,7 +2997,7 @@ cli_send_adc_baseline_dispersion:
     rcall       cli_get_next_char                         ;undefined FUN_code_00141e(void)
     cpi         R16,0xd
     brbc        CPU_Z_bp, LAB_code_000c87
-    rcall       FUN_code_00108e                         ;undefined FUN_code_00108e(void)
+    rcall       check_fpga_is_ready                         ;undefined FUN_code_00108e(void)
     brbc        CPU_C_bp, LAB_code_000c65
     ret
 LAB_code_000c65:
@@ -2999,7 +3047,7 @@ cli_send_tdc_data:
     rcall       cli_get_next_char                         ;undefined FUN_code_00141e(void)
     cpi         R16,0xd
     brbc        CPU_Z_bp, LAB_code_000c87
-    rcall       FUN_code_00108e                         ;undefined FUN_code_00108e(void)
+    rcall       check_fpga_is_ready                         ;undefined FUN_code_00108e(void)
     brbc        CPU_C_bp, LAB_code_000c8e
     ret
 LAB_code_000c8e:
@@ -3111,7 +3159,7 @@ LAB_code_000cee:
     lds         R16,NVM_STATUS                  ;= ??
     sbrc        R16,0x7
     rjmp        LAB_code_000cee
-    sbi         ERROR_REGISTER,0x3
+    sbi         UPDATE_ERROR_STATUS_REGISTER,0x3
     eor         R19,R19
 LAB_code_000cf4:
     adiw        Y,0x1
@@ -3133,7 +3181,7 @@ LAB_code_000cfb:
     rjmp        LAB_code_000cf4
 LAB_code_000d04:
     rcall       FUN_code_000d07                         ;undefined FUN_code_000d07(void)
-    cbi         ERROR_REGISTER,0x3
+    cbi         UPDATE_ERROR_STATUS_REGISTER,0x3
     rjmp        LAB_code_000ff1
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
@@ -3401,7 +3449,7 @@ alarms_clear:
     brbc        CPU_Z_bp, LAB_code_000e30
     cli
     lds         R16,0x2157                   ;= ??
-    in          R17,ERROR_REGISTER
+    in          R17,UPDATE_ERROR_STATUS_REGISTER
     andi        R17,0x3
     brbc        CPU_Z_bp, LAB_code_000e0c
     lds         R16,0x2157                   ;= ??
@@ -3438,7 +3486,7 @@ LAB_code_000e13:
     sts         0x215c,R16                   ;= ??
     ldi         R16,0x7
     sts         0x215d,R16                   ;= ??
-    cbi         ERROR_REGISTER,0x1             ; Clear error
+    cbi         UPDATE_ERROR_STATUS_REGISTER,0x1
     ldi         R16,0x41
     sts         PORTA_OUTSET,R16                ;= ??
     bset        CPU_I_bp
@@ -3608,7 +3656,7 @@ fpga_set_trg_charge_lvls:
     cpi         R20,0x0
     cpc         R21,XL
     brbc        CPU_S_bp,LAB_code_000eb0
-    rcall       FUN_code_00108e                         ;undefined FUN_code_00108e(void)
+    rcall       check_fpga_is_ready                         ;undefined FUN_code_00108e(void)
     brbc        CPU_C_bp, LAB_code_000ebf
     ret
 LAB_code_000ebf:
@@ -3633,7 +3681,7 @@ fpga_set_trg_settings:
     brbs        CPU_C_bp, LAB_code_000eb0
     and         R21,R21
     brbc        CPU_Z_bp, LAB_code_000eb0
-    rcall       FUN_code_00108e                         ;undefined FUN_code_00108e(void)
+    rcall       check_fpga_is_ready                         ;undefined FUN_code_00108e(void)
     brbc        CPU_C_bp, LAB_code_000ed3
     ret
 LAB_code_000ed3:
@@ -3682,7 +3730,7 @@ fpga_set_adc_range_corr:
     cpi         R24,0x55
     cpc         R25,XL
     brbs        CPU_S_bp,LAB_code_000f16
-    rcall       FUN_code_00108e                         ;undefined FUN_code_00108e(void)
+    rcall       check_fpga_is_ready                         ;undefined FUN_code_00108e(void)
     brbc        CPU_C_bp, LAB_code_000efe
     ret
 LAB_code_000efe:
@@ -3737,7 +3785,7 @@ fpga_set_tdc_values:
     cpi         R20,0x0
     cpc         R21,R24
     brbc        CPU_S_bp,LAB_code_000f3d
-    rcall       FUN_code_00108e                         ;undefined FUN_code_00108e(void)
+    rcall       check_fpga_is_ready                         ;undefined FUN_code_00108e(void)
     brbc        CPU_C_bp, LAB_code_000f2d
     ret
 LAB_code_000f2d:
@@ -3784,7 +3832,7 @@ fpga_set_threshold_calibration:
     cpi         R20,0xa1
     cpc         R21,R24
     brbc        CPU_S_bp,LAB_code_000f3d
-    rcall       FUN_code_00108e                         ;undefined FUN_code_00108e(void)
+    rcall       check_fpga_is_ready                         ;undefined FUN_code_00108e(void)
     brbc        CPU_C_bp, LAB_code_000f54
     ret
 LAB_code_000f54:
@@ -3843,7 +3891,7 @@ FUN_code_000f70:
     cpi         R20,0xc0
     cpc         R21,R24
     brbs        CPU_S_bp,LAB_code_000f9c
-    rcall       FUN_code_00108e                         ;undefined FUN_code_00108e(void)
+    rcall       check_fpga_is_ready                         ;undefined FUN_code_00108e(void)
     brbc        CPU_C_bp, LAB_code_000f88
     ret
 LAB_code_000f88:
@@ -3894,7 +3942,7 @@ fpga_set_ch_adc_delay:
     cpi         R20,0x21
     cpc         R21,R24
     brbc        CPU_S_bp,LAB_code_000f9c
-    rcall       FUN_code_00108e                         ;undefined FUN_code_00108e(void)
+    rcall       check_fpga_is_ready                         ;undefined FUN_code_00108e(void)
     brbc        CPU_C_bp, LAB_code_000fb3
     ret
 LAB_code_000fb3:
@@ -3945,7 +3993,7 @@ fpga_set_ch_cfd_threshold:
     cpi         R20,0x2c
     cpc         R21,R24
     brbs        CPU_S_bp,LAB_code_000f9c
-    rcall       FUN_code_00108e                         ;undefined FUN_code_00108e(void)
+    rcall       check_fpga_is_ready                         ;undefined FUN_code_00108e(void)
     brbc        CPU_C_bp, LAB_code_000fdf
     ret
 LAB_code_000fdf:
@@ -4001,11 +4049,11 @@ fpga_set_adc_zero:
     cpi         R20,0xc
     cpc         R21,R24
     brbs        CPU_S_bp,LAB_code_000ff5
-    rcall       FUN_code_00108e                         ;undefined FUN_code_00108e(void)
+    rcall       check_fpga_is_ready                         ;undefined FUN_code_00108e(void)
     brbc        CPU_C_bp, LAB_code_00100e
     ret
 LAB_code_00100e:
-    sbi         ERROR_REGISTER,0x3
+    sbi         UPDATE_ERROR_STATUS_REGISTER,0x3
     movw        R16,R20
     mov         R23,R22
     add         R23,R23
@@ -4027,7 +4075,7 @@ LAB_code_00100e:
     st          Y,R21
     bset        CPU_I_bp
     rcall       dac_set_value                         ;undefined3 FUN_code_001082(void)
-    cbi         ERROR_REGISTER,0x3
+    cbi         UPDATE_ERROR_STATUS_REGISTER,0x3
     rjmp        LAB_code_000ff1
 LAB_code_001026:
     rjmp        LAB_code_0009e4
@@ -4058,7 +4106,7 @@ fpga_set_ch_cfd_zero:
     cpi         R20,0xc
     cpc         R21,R24
     brbs        CPU_S_bp,LAB_code_001026
-    rcall       FUN_code_00108e                         ;undefined FUN_code_00108e(void)
+    rcall       check_fpga_is_ready                         ;undefined FUN_code_00108e(void)
     brbc        CPU_C_bp, LAB_code_00103f
     ret
 LAB_code_00103f:
@@ -4138,7 +4186,7 @@ dac_set_value_2:
     push        R18
     ldi         R18,0x88
     ldi         R19,0x41
-    rcall       fpga_is_ready                         ;undefined FUN_code_001098(void)
+    rcall       calculate_parameters_for_dac                         ;undefined FUN_code_001098(void)
     ldi         R18,0x80
     eor         R17,R18
     add         R22,R22
@@ -4156,7 +4204,7 @@ dac_set_value:
     push        R18
     ldi         R18,0x88
     ldi         R19,0x41
-    rcall       fpga_is_ready                         ;undefined FUN_code_001098(void)
+    rcall       calculate_parameters_for_dac                         ;undefined FUN_code_001098(void)
     ldi         R18,0x80
     eor         R17,R18
     add         R22,R22
@@ -4168,16 +4216,23 @@ dac_set_value:
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
-;undefined FUN_code_00108e(void)
+; int check_fpga_ready(){
+;   if (POWER_NOK_bm && (1 << 4)){
+;       return 0;
+;   }
+;
+;   cli_send_msg("FPGA is not ready!\n\r");
+;   return 1;
+; }
 .org (0x108e << 1)
-FUN_code_00108e:
+check_fpga_is_ready:
     clc
-    lds         R16,0x2157                   ;= ??
-    sbrc        R16,0x4
-    ret
+    lds         R16,0x2157                          ; if (POWER_NOK_bm && (1 << 4)) {
+    sbrc        R16, 4                              ;   return;
+    ret                                             ; }
     ldi         ZL,0xb4
-    ldi         ZH,0x2a
-    rcall       cli_send_msg                         ;undefined FUN_code_001413(void)
+    ldi         ZH,0x2a                             ; Send: "FPGA is not ready!\n\r"
+    rcall       cli_send_msg
     bset        CPU_C_bp
     ret
 ;************************************************************************************************
@@ -4185,20 +4240,28 @@ FUN_code_00108e:
 ;************************************************************************************************
 ;undefined FUN_code_001098(void)
 .org (0x1098 << 1)
-fpga_is_ready:
-    eor         R17,R17
-    mul         R18,R20
-    sbrc        R0,0x7
-    inc         R1
-    mov         R16,R1
-    mul         R19,R20
-    add         R16,R0
-    adc         R17,R1
-    mulsu       R21,R18
-    add         R16,R0
-    adc         R17,R1
-    mulsu       R21,R19
-    add         R17,R0
+; Uknown
+; Inputs:
+;   R18 - unsigned int = 0x81
+;   R19 - unsigned int = 0x41
+;   R20 -
+;   R21 - signed int
+;   R0  -
+;   R1  -
+calculate_parameters_for_dac:
+    eor         R17,R17                         ; R17 = 0                   // What this is?!?!?!
+    mul         R18,R20                         ; R18 = R18 * R20           //
+    sbrc        R0,0x7                          ; if (!(R0 & 0x07))         //
+    inc         R1                              ;   R1++                    //
+    mov         R16,R1                          ; R16 = R1                  //
+    mul         R19,R20                         ; R19 = R19 * R20           //
+    add         R16,R0                          ; R16 = R16 + R0            //
+    adc         R17,R1                          ; R17 = R1 + C              //
+    mulsu       R21,R18                         ; R21 = R21 * unsigned(R18) //
+    add         R16,R0                          ; R16 = R16 + R0            //
+    adc         R17,R1                          ; R17 = R17 + R1 + C        //
+    mulsu       R21,R19                         ; R21 = R21 * unsigned(R19) //
+    add         R17,R0                          ; R17 = R17 + R0            //
     ret
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
@@ -4206,27 +4269,27 @@ fpga_is_ready:
 ;undefined FUN_code_0010a6()
 .org (0x10a6 << 1)
 FUN_code_0010a6:
-    eor         R17,R17
-    mul         R18,R20
-    sbrc        R0,0x7
-    inc         R1
-    mov         R16,R1
-    mul         R19,R20
-    add         R16,R0
-    adc         R17,R1
-    mul         R18,R21
-    add         R16,R0
-    adc         R17,R1
-    mul         R19,R21
-    and         R1,R1
-    brbc        CPU_Z_bp, LAB_code_0010b7
-    add         R17,R0
-    brbs        CPU_C_bp, LAB_code_0010b7
-    ret
-LAB_code_0010b7:
-    ser         R16
-    ser         R17
-    ret
+    eor         R17,R17                         ; R17 = 0
+    mul         R18,R20                         ; R18 = R18 * RR20
+    sbrc        R0,0x7                          ; if (!(R0 & 0x07))
+    inc         R1                              ;   R1++
+    mov         R16,R1                          ; R16 = R1
+    mul         R19,R20                         ; R19 = R19 * R20
+    add         R16,R0                          ; R16 = R16 + R0
+    adc         R17,R1                          ; R17 = R1 + C
+    mul         R18,R21                         ; R18 = R18 * R21
+    add         R16,R0                          ; R16 + R0
+    adc         R17,R1                          ; R17 + R1 + C
+    mul         R19,R21                         ; R19 = R19 * R21
+    and         R1,R1                           ;
+    brbc        CPU_Z_bp, LAB_code_0010b7       ; if (R1 == 0) {
+    add         R17,R0                          ;   if (R17 == 0)
+    brbs        CPU_C_bp, LAB_code_0010b7       ;       return
+    ret                                         ;
+LAB_code_0010b7:                                ; } else {
+    ser         R16                             ;   R16 = 0xFF
+    ser         R17                             ;   R17 = 0xFF
+    ret                                         ; }
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
@@ -4368,49 +4431,61 @@ LAB_code_00114f:
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
-;undefined3 FUN_code_001155()
 .org (0x1155 << 1)
+; Params:
+;   R22 Select DAC_SYNC channel (probably range 1 - 3)
+;   R17, R16 - Data to send
 dac_send_value:
-    push        R22
-    push        R23
-    push        R24
+    push        R22                             ; Select DAC_SYNC channel
+    push        R23                             ; Dont overwrite
+    push        R24                             ; Dont overwrite
     cli
-    ldi         R23,0xd5
-    sts         SPIC_CTRL,R23
-    mov         R23,R22
-    ldi         R24,0x1
-    andi        R23,0x30
-    brbs        CPU_Z_bp, LAB_code_001164
-    add         R24,R24
-    subi        R23,0x10
-    brbs        CPU_Z_bp, LAB_code_001164
-    add         R24,R24
+    ldi         R23,0xD5                        ; SPI Control
+    sts         SPIC_CTRL,R23                   ; Double clock, Enable, MSB first, prescaler = 16
+    mov         R23,R22                         ; R23 = R22
+    ldi         R24,0x1                         ; R24 = 0x01
+    andi        R23,0x30                        ;
+    brbs        CPU_Z_bp, LAB_code_001164       ; if ((R22 & 0x20) != 0)
+    add         R24,R24                         ;   R24 = R24 * 2
+    subi        R23,0x10                        ;
+    brbs        CPU_Z_bp, LAB_code_001164       ; if ((R22 & 0x10) != 0)
+    add         R24,R24                         ;   R24 = R24 * 2
 LAB_code_001164:
-    mov         R23,R22
-    swap        R22
-    andi        R22,0xc0
-    add         R23,R23
-    andi        R23,0x6
-    or          R22,R23
-    ori         R22,0x10
-    sts         PORTC_OUTCLR,R24
-    sts         SPIC_DATA,R22
-LAB_code_00116f:
-    lds         R22,SPIC_STATUS             ;= ??
+    mov         R23,R22                         ;
+
+    swap        R22                             ; Select a device address
+    andi        R22,0xc0                        ;
+
+    add         R23,R23                         ;
+    andi        R23,0x6                         ; Select both DAC output
+
+    or          R22,R23                         ;
+    ori         R22,0x10                        ; Write to bugger and load
+                                                ; R22 = (R22 & 0x0C) << 4 | (R22 & 0x06) | 0x10
+
+    sts         PORTC_OUTCLR,R24                ; Write select DAC_SYNC channel
+
+    sts         SPIC_DATA,R22                   ;
+LAB_code_00116f:                                ; Wait until end transmission
+    lds         R22,SPIC_STATUS
     sbrs        R22,0x7
     rjmp        LAB_code_00116f
-    sts         SPIC_DATA,R17
-LAB_code_001175:
-    lds         R22,SPIC_STATUS             ;= ??
+
+                                                ; Send R17 and R16
+    sts         SPIC_DATA,R17                   ;
+LAB_code_001175:                                ; Wait until end transmission
+    lds         R22,SPIC_STATUS
     sbrs        R22,0x7
     rjmp        LAB_code_001175
+
     sts         SPIC_DATA,R16
-LAB_code_00117b:
-    lds         R22,SPIC_STATUS             ;= ??
+LAB_code_00117b:                                ; Wait until end transmission
+    lds         R22,SPIC_STATUS
     sbrs        R22,0x7
     rjmp        LAB_code_00117b
+
     ldi         R22,0x7
-    sts         PORTC_OUTSET,R22
+    sts         PORTC_OUTSET,R22                ; Disable DAC_SYNC channel
     bset        CPU_I_bp
     pop         R24
     pop         R23
@@ -4420,42 +4495,51 @@ LAB_code_00117b:
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
 ;undefined FUN_code_001187(void)
+; FPGA msg send
+; @in R18 -- address high
+; @in R21 -- address low
+; @in R17 -- data high
+; @in R16 -- data low
 .org (0x1187 << 1)
 fpga_msg_send_t2:
     push        R18
     push        R21
     push        R22
-    ldi         R22,0xd1
-    sts         SPIC_CTRL,R22                        ;= ??
-    eor         R21,R21
-    lsr         R18
-    ror         R21
-    lsr         R18
-    ror         R21
+    ldi         R22,0xd1                    ; SPI Control config
+    sts         SPIC_CTRL,R22               ; Double freq, Enable, MSB first, Master, Prescaler = 16
+    eor         R21,R21                     ; R21 = 0
+    lsr         R18                         ;
+    ror         R21                         ;
+    lsr         R18                         ;
+    ror         R21                         ; R21 = 0x00 | (R18 << 6)
+                                            ; R18 = R18 >> 2
     ldi         R22,0x1
-    sts         PORTD_OUTCLR,R22                ;= ??
-    sts         SPIC_DATA,R18                   ;= ??
-LAB_code_001197:
-    lds         R22,SPIC_STATUS                 ;= ??
+    sts         PORTD_OUTCLR,R22            ; Enable CS FPGA SPI
+
+    sts         SPIC_DATA,R18               ; Send R18
+FPGA_MSG_write_wait_until_spi_1:
+    lds         R22,SPIC_STATUS
     sbrs        R22,0x7
-    rjmp        LAB_code_001197
-    sts         SPIC_DATA,R21                   ;= ??
-LAB_code_00119d:
-    lds         R22,SPIC_STATUS                 ;= ??
+    rjmp        FPGA_MSG_write_wait_until_spi_1
+    sts         SPIC_DATA,R21               ; Send R21
+FPGA_MSG_write_wait_until_spi_2:
+    lds         R22,SPIC_STATUS
     sbrs        R22,0x7
-    rjmp        LAB_code_00119d
-    sts         SPIC_DATA,R17                   ;= ??
-LAB_code_0011a3:
-    lds         R22,SPIC_STATUS                 ;= ??
+    rjmp        FPGA_MSG_write_wait_until_spi_2
+
+    sts         SPIC_DATA,R17               ; Send R17
+FPGA_MSG_write_wait_until_spi_3:
+    lds         R22,SPIC_STATUS
     sbrs        R22,0x7
-    rjmp        LAB_code_0011a3
-    sts         SPIC_DATA,R16                   ;= ??
-LAB_code_0011a9:
-    lds         R22,SPIC_STATUS                 ;= ??
+    rjmp        FPGA_MSG_write_wait_until_spi_3
+    sts         SPIC_DATA,R16               ; Send R16
+FPGA_MSG_write_wait_until_spi_4:
+    lds         R22,SPIC_STATUS
     sbrs        R22,0x7
-    rjmp        LAB_code_0011a9
+    rjmp        FPGA_MSG_write_wait_until_spi_4
+
     ldi         R22,0x1
-    sts         PORTD_OUTSET,R22                ;= ??
+    sts         PORTD_OUTSET,R22            ; Disable CS FPGA SPI
     pop         R22
     pop         R21
     pop         R18
@@ -4464,44 +4548,50 @@ LAB_code_0011a9:
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
 ;undefined FUN_code_0011b4()
+; FPGA_msg_read_from_address
+; @in R18   -- address high
+; @in R21   -- address low
+; @out R17  -- data high
+; @out R16  -- data low
 .org (0x11b4 << 1)
 fpga_msg_read_t1:
     push        R18
     push        R21
     push        R22
-    ldi         R22,0xd1
-    sts         SPIC_CTRL,R22
+    ldi         R22,0xd1                ; SPI Control config
+    sts         SPIC_CTRL,R22           ; Double freq, Enable, MSB first, Master, Prescaler = 16
+    lsr         R18                     ;
+    ror         R21                     ;
+    lsr         R18                     ;
+    ror         R21                     ;
+                                        ; R21 = (R21 >> 2) | (R18 << 6)
+    ori         R18,0x80                ; R18 = 0x80 | R18 >> 2 // set MSB to 1 - read
     ldi         R22,0x1
-    lsr         R18
-    ror         R21
-    lsr         R18
-    ror         R21
-    ori         R18,0x80
-    sts         PORTD_OUTCLR,R22
-    sts         SPIC_DATA,R18
-LAB_code_0011c4:
-    lds         R22,SPIC_STATUS             ;= ??
+    sts         PORTD_OUTCLR,R22        ; Enable CS at FPGA SPI
+    sts         SPIC_DATA,R18           ; Send R18
+FPGA_MSG_read_wait_until_spi_1:
+    lds         R22,SPIC_STATUS
     sbrs        R22,0x7
-    rjmp        LAB_code_0011c4
-    sts         SPIC_DATA,R21
-LAB_code_0011ca:
-    lds         R22,SPIC_STATUS             ;= ??
+    rjmp        FPGA_MSG_read_wait_until_spi_1
+    sts         SPIC_DATA,R21           ; Send R21
+FPGA_MSG_read_wait_until_spi_2:
+    lds         R22,SPIC_STATUS
     sbrs        R22,0x7
-    rjmp        LAB_code_0011ca
+    rjmp        FPGA_MSG_read_wait_until_spi_2
     sts         SPIC_DATA,R17
-LAB_code_0011d0:
-    lds         R22,SPIC_STATUS             ;= ??
+FPGA_MSG_read_wait_until_spi_3:
+    lds         R22,SPIC_STATUS
     sbrs        R22,0x7
-    rjmp        LAB_code_0011d0
-    lds         R17,SPIC_DATA               ;= ??
-    sts         SPIC_DATA,R16
-LAB_code_0011d8:
-    lds         R22,SPIC_STATUS             ;= ??
+    rjmp        FPGA_MSG_read_wait_until_spi_3
+    lds         R17,SPIC_DATA
+    sts         SPIC_DATA,R16           ; Read data from SPI
+FPGA_MSG_read_wait_until_spi_4:
+    lds         R22,SPIC_STATUS
     sbrs        R22,0x7
-    rjmp        LAB_code_0011d8
-    lds         R16,SPIC_DATA               ;= ??
+    rjmp        FPGA_MSG_read_wait_until_spi_4
+    lds         R16,SPIC_DATA           ; Read data from SPI
     ldi         R22,0x1
-    sts         PORTD_OUTSET,R22
+    sts         PORTD_OUTSET,R22        ; Disable CS at FPGA SPI
     pop         R22
     pop         R21
     pop         R18
@@ -4510,77 +4600,85 @@ LAB_code_0011d8:
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
 ;undefined FUN_code_0011e5(void)
+; FUN_code_0011e5(void)
+; @out R9,  R8  -
+; @out R11, R10 -
+; @out R13, R12 -
+; @out R15, R14 -
 .org (0x11e5 << 1)
 FUN_code_0011e5:
     push        R18
     push        R21
     push        R22
-    ldi         R22,0xd1
-    sts         SPIC_CTRL,R22                        ;= ??
-    ldi         R18,0xbc
-    eor         R21,R21
+    ldi         R22,0xd1                        ; SPI Control config
+    sts         SPIC_CTRL,R22                   ; Double freq, Enable, MSB first, Master, Prescaler = 16
+    ldi         R18,0xbc                        ; R18 = 0xBC | R21 = 0
+    eor         R21,R21                         ; MSB = 1 (READ) address = 0xF0
     ldi         R22,0x1
-    sts         PORTD_OUTCLR,R22                ;= ??
-    sts         SPIC_DATA,R18                   ;= ??
+    sts         PORTD_OUTCLR,R22                ; Enable CS at FPGA SPI
+
+    sts         SPIC_DATA,R18                   ; SPI send to FPGA 0xBC
 LAB_code_0011f2:
-    lds         R22,SPIC_STATUS                 ;= ??
+    lds         R22,SPIC_STATUS
     sbrs        R22,0x7
     rjmp        LAB_code_0011f2
-    sts         SPIC_DATA,R21                   ;= ??
+    sts         SPIC_DATA,R21                   ; SPI send to FPGA 0x00
 LAB_code_0011f8:
-    lds         R22,SPIC_STATUS                 ;= ??
+    lds         R22,SPIC_STATUS
     sbrs        R22,0x7
     rjmp        LAB_code_0011f8
-    sts         SPIC_DATA,R21                   ;= ??
+
+    sts         SPIC_DATA,R21                   ; SPI send to FPGA 0x00
 LAB_code_0011fe:
-    lds         R22,SPIC_STATUS                 ;= ??
+    lds         R22,SPIC_STATUS
     sbrs        R22,0x7
     rjmp        LAB_code_0011fe
-    lds         R9,SPIC_DATA                    ;= ??
-    sts         SPIC_DATA,R21                   ;= ??
+    lds         R9,SPIC_DATA                    ; Save data 1
+
+    sts         SPIC_DATA,R21                   ; SPI send to FPGA 0x00
 LAB_code_001206:
-    lds         R22,SPIC_STATUS                 ;= ??
+    lds         R22,SPIC_STATUS
     sbrs        R22,0x7
     rjmp        LAB_code_001206
-    lds         R8,SPIC_DATA                    ;= ??
-    sts         SPIC_DATA,R21                   ;= ??
+    lds         R8,SPIC_DATA                    ; Save data 2
+    sts         SPIC_DATA,R21                   ; SPI send to FPGA 0x00
 LAB_code_00120e:
-    lds         R22,SPIC_STATUS                 ;= ??
+    lds         R22,SPIC_STATUS
     sbrs        R22,0x7
     rjmp        LAB_code_00120e
-    lds         R11,SPIC_DATA                   ;= ??
-    sts         SPIC_DATA,R21                   ;= ??
+    lds         R11,SPIC_DATA                   ; Save data 3
+    sts         SPIC_DATA,R21                   ; SPI send to FPGA 0x00
 LAB_code_001216:
-    lds         R22,SPIC_STATUS                 ;= ??
+    lds         R22,SPIC_STATUS
     sbrs        R22,0x7
     rjmp        LAB_code_001216
-    lds         R10,SPIC_DATA                   ;= ??
-    sts         SPIC_DATA,R21                   ;= ??
+    lds         R10,SPIC_DATA                   ; Save data 4
+    sts         SPIC_DATA,R21                   ; SPI send to FPGA 0x00
 LAB_code_00121e:
-    lds         R22,SPIC_STATUS                 ;= ??
+    lds         R22,SPIC_STATUS
     sbrs        R22,0x7
     rjmp        LAB_code_00121e
-    lds         R13,SPIC_DATA                   ;= ??
-    sts         SPIC_DATA,R21                   ;= ??
+    lds         R13,SPIC_DATA                   ; Save data 5
+    sts         SPIC_DATA,R21                   ; SPI send to FPGA 0x00
 LAB_code_001226:
-    lds         R22,SPIC_STATUS                 ;= ??
+    lds         R22,SPIC_STATU
     sbrs        R22,0x7
     rjmp        LAB_code_001226
-    lds         R12,SPIC_DATA                   ;= ??
-    sts         SPIC_DATA,R21                   ;= ??
+    lds         R12,SPIC_DATA                   ; Save data 6
+    sts         SPIC_DATA,R21                   ; SPI send to FPGA 0x00
 LAB_code_00122e:
-    lds         R22,SPIC_STATUS                 ;= ??
+    lds         R22,SPIC_STATUS
     sbrs        R22,0x7
     rjmp        LAB_code_00122e
-    lds         R15,SPIC_DATA                   ;= ??
-    sts         SPIC_DATA,R21                   ;= ??
+    lds         R15,SPIC_DATA                   ; Save data 7
+    sts         SPIC_DATA,R21                   ; SPI send to FPGA 0x00
 LAB_code_001236:
-    lds         R22,SPIC_STATUS                 ;= ??
+    lds         R22,SPIC_STATUS
     sbrs        R22,0x7
     rjmp        LAB_code_001236
-    lds         R14,SPIC_DATA                   ;= ??
+    lds         R14,SPIC_DATA                   ; Save data 8
     ldi         R22,0x1
-    sts         PORTD_OUTSET,R22                ;= ??
+    sts         PORTD_OUTSET,R22                ; Disable SPI from SPI
     pop         R22
     pop         R21
     pop         R18
@@ -4670,47 +4768,56 @@ LAB_code_00128c:
 ;************************************************************************************************
 ;undefined FUN_code_001298(void)
 .org (0x1298 << 1)
-fpga_send_mcu_ts:
+fpga_send_mcu_timestamp:
     push        R18
     push        R21
     push        R22
     push        ZL
     push        ZH
     ldi         ZL,0x92
-    ldi         ZH,0x2b
-    ldi         R22,0xd1
-    sts         SPIC_CTRL,R22                        ;= ??
-    ldi         R18,0x3d
-    ldi         R21,0x40
+    ldi         ZH,0x2B                         ; Z = 0x2B92
+                                                ; data: 0x2B, 0xD9, 0x2A, 0x85
+    ldi         R22,0xD1                        ; SPI Control config
+    sts         SPIC_CTRL,R22                   ; Double freq, Enable, MSB first, Master, Prescaler = 16
+    ldi         R18,0x3D                        ; R18 = 0x3D | R21 = 0x40
+    ldi         R21,0x40                        ; MSB = 0 (WRITE) address = 0xF5
     ldi         R22,0x1
-    sts         PORTD_OUTCLR,R22                ;= ??
-    sts         SPIC_DATA,R18                   ;= ??
-LAB_code_0012a9:
-    lds         R22,SPIC_STATUS                 ;= ??
+    sts         PORTD_OUTCLR,R22                ; Enable CS FPGA SPI
+
+                                                ; Send address
+    sts         SPIC_DATA,R18                   ; Send 0x3D as address
+fpga_send_mcu_timestamp_wait_1:
+    lds         R22,SPIC_STATUS
     sbrs        R22,0x7
-    rjmp        LAB_code_0012a9
-    sts         SPIC_DATA,R21                   ;= ??
-LAB_code_0012af:
-    lds         R22,SPIC_STATUS                 ;= ??
+    rjmp        fpga_send_mcu_timestamp_wait_1
+
+    sts         SPIC_DATA,R21                   ; Send 0x01
+fpga_send_mcu_timestamp_wait_2:
+    lds         R22,SPIC_STATUS
     sbrs        R22,0x7
-    rjmp        LAB_code_0012af
-LAB_code_0012b3:
-    lpm         R18,Z+
-    lpm         R21,Z+
-    sts         SPIC_DATA,R21                   ;= ??
+    rjmp        fpga_send_mcu_timestamp_wait_2
+
+LAB_code_0012b3:                                ; for (int i = 0; i < 4; i++){
+    lpm         R18,Z+                          ;   spi_send_data(*(0x2B92 + i));
+    lpm         R21,Z+                          ;   while(!(SPIC_STATUS && 7));
+                                                ; }
+    sts         SPIC_DATA,R21                   ; Send R21
 LAB_code_0012b7:
-    lds         R22,SPIC_STATUS                 ;= ??
+    lds         R22,SPIC_STATUS
     sbrs        R22,0x7
     rjmp        LAB_code_0012b7
-    sts         SPIC_DATA,R18                   ;= ??
+
+    sts         SPIC_DATA,R18                   ; Send R18
 LAB_code_0012bd:
-    lds         R22,SPIC_STATUS                 ;= ??
+    lds         R22,SPIC_STATUS
     sbrs        R22,0x7
     rjmp        LAB_code_0012bd
-    cpi         ZL,0x96
+
+    cpi         ZL,0x96                         ; if Z == 0x2B96 skip
     brbc        CPU_Z_bp, LAB_code_0012b3
     ldi         R22,0x1
-    sts         PORTD_OUTSET,R22                ;= ??
+    sts         PORTD_OUTSET,R22                ; Disable CS FPGA SPI
+
     pop         ZH
     pop         ZL
     pop         R22
@@ -4720,21 +4827,24 @@ LAB_code_0012bd:
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
-;undefined FUN_code_0012cc(void)
+; Soft SPI send address with 8bit data
+; @in R16 - address
+; @in R17 - data
+; @out void
 .org (0x12cc << 1)
 adt7311_8bit_rw:
     push        R16
     push        R17
     push        R18
     push        R19
-    ldi         R18,0x10
-    sts         PORTA_OUTCLR,R18                ;= ??
+    ldi         R18,0x10                        ;
+    sts         PORTA_OUTCLR,R18                ; Enable CS ADT7311
     mov         R19,R17
-    rcall       adt7311_byte_rw                         ;undefined FUN_code_001304(void)
+    rcall       adt7311_byte_rw                 ; adt7311_byte_rw(R16)
     mov         R16,R19
-    rcall       adt7311_byte_rw                         ;undefined FUN_code_001304(void)
+    rcall       adt7311_byte_rw                 ; adt7311_byte_rw(R17)
     ldi         R18,0x10
-    sts         PORTA_OUTSET,R18                ;= ??
+    sts         PORTA_OUTSET,R18                ; Disable CS ADT7311
     pop         R19
     pop         R18
     pop         R17
@@ -4743,25 +4853,30 @@ adt7311_8bit_rw:
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
-;undefined FUN_code_0012df(void)
+; Soft SPI send address with 16bit data
+; @in R16 - address
+; @in R18 - data high
+; @in R17 - data low
+; @out R21 - read high
+; @out R20 - read low
 .org (0x12df << 1)
 adt7311_16bit_rw:
     push        R16
     push        R17
     push        R18
     ldi         R20,0x10
-    sts         PORTA_OUTCLR,R20                ;= ??
+    sts         PORTA_OUTCLR,R20                ; Enable CS ADT7311
     mov         R20,R17
     mov         R21,R18
-    rcall       adt7311_byte_rw                         ;undefined FUN_code_001304(void)
+    rcall       adt7311_byte_rw                 ; adt7311_byte_rw(R16)
     mov         R16,R21
-    rcall       adt7311_byte_rw                         ;undefined FUN_code_001304(void)
+    rcall       adt7311_byte_rw                 ; adt7311_byte_rw(R18)
     mov         R21,R16
     mov         R16,R20
-    rcall       adt7311_byte_rw                         ;undefined FUN_code_001304(void)
+    rcall       adt7311_byte_rw                 ; adt7311_byte_rw(R17)
     mov         R20,R16
     ldi         R18,0x10
-    sts         PORTA_OUTSET,R18                ;= ??
+    sts         PORTA_OUTSET,R18                ; Disable CS ADT7311
     pop         R18
     pop         R17
     pop         R16
@@ -4791,6 +4906,8 @@ adt7311_faults_clr:
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
 ; Software SPI read/write implementation
+; @in R16
+; @out R16
 .org (0x1304 << 1)
 adt7311_byte_rw:
     ldi         R18,0x8
@@ -5218,9 +5335,9 @@ LAB_code_00143a:
     sts         0x2000,R17                   ;= ??
     cpi         R18,0xd
     brbc        CPU_Z_bp, LAB_code_001449
-    lds         R17,0x2005                   ;= ??
+    lds         R17,SERIAL_RECV_MSG_LEN                   ;= ??
     dec         R17
-    sts         0x2005,R17                   ;= ??
+    sts         SERIAL_RECV_MSG_LEN,R17                   ;= ??
 LAB_code_001449:
     cpi         R18,0x60
     brbs        CPU_S_bp,LAB_code_00144e
@@ -5296,7 +5413,7 @@ LAB_code_001484:
     pop         ZH
     ret
 
-    .org (0x148b << 1) ; NOTE: PLL SPI DATA
+    .org (0x148b << 1) ; Flash address: 0x2916  NOTE: PLL SPI DATA
     .byte			0x08, 0x18, 0x00, 0x00,	; 0x00001808
     .byte           0x20, 0x03, 0x07, 0xeb, ; 0xEB070320
     .byte           0x21, 0x03, 0x80, 0xeb, ; ...
@@ -5317,7 +5434,7 @@ LAB_code_001484:
     .byte           0xf7, 0x37, 0x78, 0xbc,
     .byte           0x1f, 0x00
 
-    .org (0x14b1 << 1)  ; Flash address: 0x2966
+    .org (0x14b1 << 1)  ; Flash address: 0x2962
     .string         "\r\nPMxx control interface ready\r\n"
 
     .org (0x14c4 << 1)  ; Flash address: 0x2988

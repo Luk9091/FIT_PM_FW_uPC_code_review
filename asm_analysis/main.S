@@ -30,6 +30,8 @@
 #define CFD_SAT_LVL_LOW     0x2230
 #define CFD_SAT_LVL_HIGH    0x2231
 
+; Data at address: 0x2158, 0x2159 were cleared after reset
+
 .section .text
 
 ;************************************************************************************************
@@ -128,7 +130,7 @@ LAB_code_00011c:
     rjmp        LAB_code_00022c
 LAB_code_000120:
     cli
-    rcall       FUN_code_0005b4                         ;undefined FUN_code_0005b4(void)
+    rcall       FPGA_THSs_reset_loop                         ;undefined FUN_code_0005b4(void)
     bset        CPU_I_bp
     ldi         R16,0x3
     sts         0x2441,R16                   ;= ??
@@ -252,7 +254,7 @@ LAB_code_0001a7:
     st          X+,R16
     st          X,R16
 LAB_code_0001b5:
-    call        FUN_code_000b88                         ;undefined FUN_code_000b88(void)
+    call        FPGA_FLASH_block_erase                         ;undefined FUN_code_000b88(void)
 LAB_code_0001b7:
     movw        R16,R0
     mov         R18,R2
@@ -318,18 +320,18 @@ LAB_code_0001eb:
     ldi         R16,0xb4
     sts         DMA_CH0_CTRLA,R16               ;= ??
 LAB_code_000204:
-    call        FUN_code_000b9d                         ;undefined FUN_code_000b9d(void)
-    call        FUN_code_000b59                         ;undefined FUN_code_000b59(void)
+    call        FPGA_FLASH_wait_until_finish_write                         ;undefined FUN_code_000b9d(void)
+    call        FPGA_FLASH_write_data                   ; undefined FUN_code_000b59(void)
     brbs        CPU_C_bp, LAB_code_00020f
     and         R21,R21
     brbs        CPU_Z_bp,LAB_code_00020c
     rjmp        LAB_code_0001b7
 LAB_code_00020c:
-    call        FUN_code_000b9d                         ;undefined FUN_code_000b9d(void)
+    call        FPGA_FLASH_wait_until_finish_write                         ;undefined FUN_code_000b9d(void)
     rjmp        LAB_code_0001b5
 LAB_code_00020f:
-    call        FUN_code_000b9d                         ;undefined FUN_code_000b9d(void)
-    call        FUN_code_000bb9                         ;undefined FUN_code_000bb9(undefined2...
+    call        FPGA_FLASH_wait_until_finish_write                         ;undefined FUN_code_000b9d(void)
+    call        FPGA_FLASH_check_crc32_from_to                         ;undefined FUN_code_000bb9(undefined2...
     ldi         XL,0x3d
     ldi         XH,0x24
     st          X+,R18
@@ -375,7 +377,7 @@ WAIT_UNTIL_DMA_FINISH_TRANSFER:
 WAIT_UNTIL_SELECT_HDMI_SPI:
     bset        CPU_I_bp
     cli
-    lds         R18,PORTD_IN                    ; wait unitl select from HDMI SPI
+    lds         R18,PORTD_IN                    ; wait until select from HDMI SPI
     sbrs        R18,4                           ;
     rjmp        WAIT_UNTIL_SELECT_HDMI_SPI
     sts         0x243c,R16
@@ -1260,7 +1262,7 @@ LAB_code_0005a1:
     sts         0x2159,R16                   ;= ??
     rjmp        LAB_code_0005ad
 LAB_code_0005a9:
-    rcall       FUN_code_0005b4                         ;undefined FUN_code_0005b4(void)
+    rcall       FPGA_THSs_reset_loop                         ;undefined FUN_code_0005b4(void)
     ldi         R16,0x2
     sts         0x2441,R16                   ;= ??
 LAB_code_0005ad:
@@ -1275,22 +1277,23 @@ LAB_code_0005ad:
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
 ;undefined FUN_code_0005b4(void)
+; Reset loop THSs and FPGA
 .org (0x05b4 << 1)
-FUN_code_0005b4:
-    ldi         R16,0x1
-    sts         PORTE_INTCTRL,R16               ;= ??
-    ldi         R16,0x8
-    sts         PORTC_OUTCLR,R16                ;= ??
-    ldi         R16,0xa0
-    sts         PORTB_OUTCLR,R16                ;= ??
-    ldi         R16,0xc0
-    sts         PORTA_OUTSET,R16                ;= ??
-    eor         R16,R16
-    sts         0x2158,R16                   ;= ??
-    sts         0x2159,R16                   ;= ??
-    lds         R16,0x2157                   ;= ??
+FPGA_THSs_reset_loop:
+    ldi         R16,0x1                         ;
+    sts         PORTE_INTCTRL,R16               ; PORTE set IRQ Level LOW
+    ldi         R16,0x8                         ;
+    sts         PORTC_OUTCLR,R16                ; Diable LED FPGA DONE
+    ldi         R16,0xa0                        ;
+    sts         PORTB_OUTCLR,R16                ; Reset FPGA and THSs
+    ldi         R16,0xc0                        ;
+    sts         PORTA_OUTSET,R16                ; Disable LEDs: Module Ready, CLK err
+    eor         R16,R16                         ;
+    sts         0x2158,R16                      ;= ??
+    sts         0x2159,R16                      ;= ??
+    lds         R16,0x2157                      ; Mask DIODE ???
     andi        R16,0x7f
-    sts         0x2157,R16                   ;= ??
+    sts         0x2157,R16                      ;
     ret
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
@@ -1305,28 +1308,28 @@ PORTE_INT0_vect_isr:        ; ps_change_detected
     push        R17
     push        R18
     eor         R17,R17
-    lds         R16,PORTE_IN                    ;= ??
-    bst         R16,0x1
-    bld         R17,0x0
-    bst         R16,0x3
-    bld         R17,0x3
-    bst         R16,0x2
-    lds         R16,0x2157                   ;= ??
+    lds         R16,PORTE_IN                    ;
+    bst         R16,0x1                         ; T = IN_PWR_OK
+    bld         R17,0x0                         ; R17 = 0 | IN_PWR_OK << 0
+    bst         R16,0x3                         ;
+    bld         R17,0x3                         ; R17 = R17 | P1V2LDO_PGood << 3
+    bst         R16,0x2                         ; T = EN_PSU
+    lds         R16,POWER_NOK_bm                ;
     mov         R18,R16
-    andi        R16,0xf6
-    or          R16,R17
-    sts         0x2157,R16                   ;= ??
-    eor         R18,R17
-    sbrs        R18,0x0
-    rjmp        LAB_code_0005f6
+    andi        R16,0xf6                        ;
+    or          R16,R17                         ; R16 = (R16 & 0xF6) |  P1V2LDO_PGood << 3 | IN_PWR_OK << 0
+    sts         0x2157,R16                      ;
+    eor         R18,R17                         ;
+    sbrs        R18,0x0                         ;   if (POWER_NOK_bm ^ (IN_PWR_OK) == 0)
+    rjmp        LAB_code_0005f6                 ;       jmp
     sbrc        R17,0x0
-    rjmp        LAB_code_0005eb
-    ldi         R16,0x4
-    sts         PORTE_OUTCLR,R16                ;= ??
-    sbi         UPDATE_ERROR_STATUS_REGISTER,0x1
+    rjmp        LAB_code_0005eb                 ; if (IN_PWR_OK == 0) {
+    ldi         R16,0x4                         ;   R16 = 0x04;
+    sts         PORTE_OUTCLR,R16                ;
+    sbi         UPDATE_ERROR_STATUS_REGISTER,0x1;
     rcall       system_deinit                         ;undefined FUN_code_00064b(void)
     rjmp        LAB_code_00060e
-LAB_code_0005eb:
+LAB_code_0005eb:                                ; }
     ldi         R17,0xd0
     ldi         R18,0x7
 LAB_code_0005ed:
@@ -2640,7 +2643,7 @@ fpga_firmware_update:
     movw        R20,Y
     mov         R22,ZL
 LAB_code_000afd:
-    rcall       FUN_code_000b88                         ;undefined FUN_code_000b88(void)
+    rcall       FPGA_FLASH_block_erase                         ;undefined FUN_code_000b88(void)
 LAB_code_000afe:
     mov         R17,R0
     mov         R18,R1
@@ -2672,16 +2675,16 @@ LAB_code_000b11:
     brbc        CPU_Z_bp, LAB_code_000b11
     sts         0x2435,R24                   ;= ??
     sts         0x2436,R25                   ;= ??
-    rcall       FUN_code_000b9d                         ;undefined FUN_code_000b9d(void)
-    rcall       FUN_code_000b59                         ;undefined FUN_code_000b59(void)
+    rcall       FPGA_FLASH_wait_until_finish_write                         ;undefined FUN_code_000b9d(void)
+    rcall       FPGA_FLASH_write_data                         ;undefined FUN_code_000b59(void)
     brbs        CPU_C_bp, LAB_code_000b27
     and         R21,R21
     brbc        CPU_Z_bp, LAB_code_000afe
-    rcall       FUN_code_000b9d                         ;undefined FUN_code_000b9d(void)
+    rcall       FPGA_FLASH_wait_until_finish_write                         ;undefined FUN_code_000b9d(void)
     rjmp        LAB_code_000afd
 LAB_code_000b27:
-    rcall       FUN_code_000b9d                         ;undefined FUN_code_000b9d(void)
-    rcall       FUN_code_000bb9                         ;undefined FUN_code_000bb9(undefined2...
+    rcall       FPGA_FLASH_wait_until_finish_write                         ;undefined FUN_code_000b9d(void)
+    rcall       FPGA_FLASH_check_crc32_from_to                         ;undefined FUN_code_000bb9(undefined2...
     call        cli_send_32bit_hex                         ;undefined FUN_code_00137c(void)
     movw        R16,R18
     call        cli_send_32bit_hex                         ;undefined FUN_code_00137c(void)
@@ -2708,13 +2711,12 @@ take_control_over_flash_chip:
 ;************************************************************************************************
 ;undefined FUN_code_000b3f(void)
 .org (0x0b3f << 1)
-; TODO: back here
 FUN_code_000b3f:
     cli                                         ; Disable IRQ
     eor         R16,R16                         ; R16 = 0
     sts         PORTD_INTCTRL,R16               ; Disable IRQ from port D
     sts         SPIE_CTRL,R16                   ; Disable SPI on port E
-    ldi         R16,0xb0                        ;
+    ldi         R16,0xB0                        ;
     sts         PORTE_DIRCLR,R16                ;
     cbi         UPDATE_ERROR_STATUS_REGISTER,0x1;
     ldi         R16,0x1                         ;
@@ -2734,218 +2736,253 @@ FUN_code_000b3f:
 ;************************************************************************************************
 ;undefined FUN_code_000b59(void)
 .org (0x0b59 << 1)
-FUN_code_000b59:
-    rcall       FUN_code_000b8f                         ;undefined FUN_code_000b8f(void)
-    ldi         R16,0x2
-    rcall       FUN_code_000c04                         ;undefined FUN_code_000c04(undefined2...
-    lds         R24,0x2437                   ;= ??
-    lds         R25,0x2438                   ;= ??
-LAB_code_000b60:
+; R00-R02 - end_address
+; R20, R21, R22 - write address
+; 0x2235  - read data address
+; 0x2437  - previous last address low
+; 0x2438  - previous last address high
+FPGA_FLASH_write_data:
+    rcall       FPGA_FLASH_send_Write_Enable_for_NonVolatile_Data_Change                         ;undefined FUN_code_000b8f(void)
+    ldi         R16,0x02                        ; Page Program commend
+    rcall       FPGA_FLASH_send_command_with_3_args                         ;undefined FUN_code_000c04(undefined2...
+    lds         R24,0x2437                      ;= ??
+    lds         R25,0x2438                      ;= ??
+FPGA_FLASH_write_next_data_loop:
     ldi         XL,0x35
     ldi         XH,0x22
     add         XL,R24
     adc         XH,R25
     ld          R16,X
-    adiw        R24,0x1
-    andi        R25,0x1
-    sts         SPIE_DATA,R16                   ;= ??
-LAB_code_000b69:
-    lds         R19,SPIE_STATUS                 ;= ??
+    adiw        R24,0x1                         ;
+    andi        R25,0x1                         ; R24-R25 = (R24-R25 + 1) & 0x01FF
+
+    sts         SPIE_DATA,R16
+FPGA_FLASH_write_next_data_wait:
+    lds         R19,SPIE_STATUS
     sbrs        R19,0x7
-    rjmp        LAB_code_000b69
+    rjmp        FPGA_FLASH_write_next_data_wait
+
     cp          R0,R20
     cpc         R1,R21
     cpc         R2,R22
-    brbc        CPU_Z_bp, LAB_code_000b7a
-    sts         0x2437,R24                   ;= ??
-    sts         0x2438,R25                   ;= ??
+    brbc        CPU_Z_bp, LAB_code_000b7a       ; if (IDK) skip
+    sts         0x2437,R24                      ; Store address
+    sts         0x2438,R25
     ldi         R16,0x10
-    sts         PORTE_OUTSET,R16                ;= ??
-    bset        CPU_C_bp
-    ret
+    sts         PORTE_OUTSET,R16                ; Disable FPGA FLASH chip
+    sec                                         ; set carry
+    ret                                         ; return with carry
 LAB_code_000b7a:
     subi        R20,0xff
     sbci        R21,0xff
     sbci        R22,0xff
-    and         R20,R20
-    brbc        CPU_Z_bp, LAB_code_000b60
-    sts         0x2437,R24                   ;= ??
-    sts         0x2438,R25                   ;= ??
+    and         R20,R20                         ; if (R20 != 0x00) loop // if (not end page) loop
+    brbc        CPU_Z_bp, FPGA_FLASH_write_next_data_loop
+    sts         0x2437,R24
+    sts         0x2438,R25
     ldi         R16,0x10
-    sts         PORTE_OUTSET,R16                ;= ??
-    clc
-    ret
+    sts         PORTE_OUTSET,R16                ; Disable FPGA FLASH chip
+    clc                                         ; clear carry
+    ret                                         ; return without carry
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
 ;undefined FUN_code_000b88(void)
 .org (0x0b88 << 1)
-FUN_code_000b88:
-    rcall       FUN_code_000b8f                         ;undefined FUN_code_000b8f(void)
-    ldi         R16,0xd8
-    rcall       FUN_code_000c04                         ;undefined FUN_code_000c04(undefined2...
+; Parameters:
+; R22, R21, R20 -- Address to erase
+FPGA_FLASH_block_erase:
+    rcall       FPGA_FLASH_send_Write_Enable_for_NonVolatile_Data_Change    ;
+    ldi         R16,0xD8                                                    ; Block Erase
+    rcall       FPGA_FLASH_send_command_with_3_args                         ;
     ldi         R16,0x10
-    sts         PORTE_OUTSET,R16                ;= ??
+    sts         PORTE_OUTSET,R16                                            ; Disable FPGA Flash chip
     ret
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
 ;undefined FUN_code_000b8f(void)
 .org (0x0b8f << 1)
-FUN_code_000b8f:
-    ldi         R16,0x10
-    sts         PORTE_OUTCLR,R16                ;= ??
+; Send 0x06 to FPGA FLASH
+FPGA_FLASH_send_Write_Enable_for_NonVolatile_Data_Change:
+    ldi         R16, 1 << 4
+    sts         PORTE_OUTCLR,R16                ; Enable FPGA FLASH chip
+
     ldi         R16,0x6
-    sts         SPIE_DATA,R16                   ;= ??
-LAB_code_000b95:
-    lds         R19,SPIE_STATUS                 ;= ??
+    sts         SPIE_DATA,R16                   ;
+FPGA_FLASH_send_WREN_wait:
+    lds         R19,SPIE_STATUS                 ;
     sbrs        R19,0x7
-    rjmp        LAB_code_000b95
+    rjmp        FPGA_FLASH_send_WREN_wait
+
     ldi         R16,0x10
-    sts         PORTE_OUTSET,R16                ;= ??
+    sts         PORTE_OUTSET,R16                ; Disable FPGA FLASH chip
     ret
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
 ;undefined FUN_code_000b9d(void)
 .org (0x0b9d << 1)
-FUN_code_000b9d:
+FPGA_FLASH_wait_until_finish_write:
     ldi         R24,0x40
     ldi         R25,0x6
-LAB_code_000b9f:
-    sbiw        R24,0x1
-    brbc        CPU_Z_bp, LAB_code_000b9f
+FPGA_FLASH_wait_until_finish_write_delay:                                ; for (int16_t i = 0x0640; i > 0; i--);
+    sbiw        R24,0x1                         ; R24 = 0;
+    brbc        CPU_Z_bp, FPGA_FLASH_wait_until_finish_write_delay       ;
     ldi         R16,0x10
-    sts         PORTE_OUTCLR,R16                ;= ??
-    ldi         R16,0x5
-    sts         SPIE_DATA,R16                   ;= ??
-LAB_code_000ba7:
-    lds         R19,SPIE_STATUS                 ;= ??
+    sts         PORTE_OUTCLR,R16                ; Enable FPGA FLASH chip
+
+    ldi         R16,0x05                        ; Read status register 1
+    sts         SPIE_DATA,R16
+FPGA_FLASH_wait_until_finish_write_SPI_write_wait:
+    lds         R19,SPIE_STATUS
     sbrs        R19,0x7
-    rjmp        LAB_code_000ba7
-    sts         SPIE_DATA,R24                   ;= ??
-LAB_code_000bad:
-    lds         R19,SPIE_STATUS                 ;= ??
+    rjmp        FPGA_FLASH_wait_until_finish_write_SPI_write_wait
+
+    sts         SPIE_DATA,R24                   ; Send 0 to read data
+FPGA_FLASH_wait_until_finish_write_SPI_read_wait:
+    lds         R19,SPIE_STATUS
     sbrs        R19,0x7
-    rjmp        LAB_code_000bad
-    lds         R24,SPIE_DATA                   ;= ??
+    rjmp        FPGA_FLASH_wait_until_finish_write_SPI_read_wait
+    lds         R24,SPIE_DATA                   ; Store status to R24
+
     ldi         R16,0x10
-    sts         PORTE_OUTSET,R16                ;= ??
-    sbrc        R24,0x0
-    rjmp        FUN_code_000b9d
+    sts         PORTE_OUTSET,R16                ; Disable FPGA FLASH chip
+    sbrc        R24,0x0                         ; if (write in progress == 0)
+    rjmp        FPGA_FLASH_wait_until_finish_write  ;   again
     ret
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
 ;undefined FUN_code_000bb9()
 .org (0x0bb9 << 1)
-FUN_code_000bb9:
+; Parameters:
+; R00-R02 - end_address
+; R29-R30 - address -- read start address
+FPGA_FLASH_check_crc32_from_to:
     ldi         R16,0x10
-    sts         PORTE_OUTCLR,R16                ;= ??
-    ldi         R16,0x3
-    sts         SPIE_DATA,R16                   ;= ??
+    sts         PORTE_OUTCLR,R16                ; Enable FPGA FLASH chip
+
     eor         R10,R10
-LAB_code_000bc0:
+
+    ldi         R16,0x03
+    sts         SPIE_DATA,R16                   ; Send command READ
+FPGA_FLASH_check_write_command_wait:
+    lds         R19,SPIE_STATUS
+    sbrs        R19,0x7
+    rjmp        FPGA_FLASH_check_write_command_wait
+                                                ; Send three byte address
+    sts         SPIE_DATA,R30                   ; Send Most-Significant Byte of address
+FPGA_FLASH_check_write_address_2_wait:
+    lds         R19,SPIE_STATUS
+    sbrs        R19,0x7
+    rjmp        FPGA_FLASH_check_write_address_2_wait
+    sts         SPIE_DATA,R29                   ; Send middle byte of address
+FPGA_FLASH_check_write_address_1_wait:
     lds         R19,SPIE_STATUS                 ;= ??
     sbrs        R19,0x7
-    rjmp        LAB_code_000bc0
-    sts         SPIE_DATA,ZL                   ;= ??
-LAB_code_000bc6:
-    lds         R19,SPIE_STATUS                 ;= ??
-    sbrs        R19,0x7
-    rjmp        LAB_code_000bc6
-    sts         SPIE_DATA,YH                   ;= ??
-LAB_code_000bcc:
-    lds         R19,SPIE_STATUS                 ;= ??
-    sbrs        R19,0x7
-    rjmp        LAB_code_000bcc
-    sts         SPIE_DATA,YL                   ;= ??
-    ser         R16
-    ser         R17
-    ser         R18
-    ser         R19
-    ldi         R23,0xb7
-    ldi         R24,0x1d
-    ldi         R25,0xc1
-    ldi         XL,0x4
-LAB_code_000bda:
-    lds         R22,SPIE_STATUS             ;= ??
+    rjmp        FPGA_FLASH_check_write_address_1_wait
+    sts         SPIE_DATA,R28                   ; Send Least-Significant Byte of address
+FPGA_FLASH_check_write_address_0_wait:
+    lds         R22,SPIE_STATUS
     sbrs        R22,0x7
-    rjmp        LAB_code_000bda
-    sts         SPIE_DATA,R10                   ;= ??
-LAB_code_000be0:
-    lds         R22,SPIE_STATUS             ;= ??
+    rjmp        FPGA_FLASH_check_write_address_0_wait
+
+    ser         R16                             ; R16 = 0xFF
+    ser         R17                             ; R17 = 0xFF
+    ser         R18                             ; R18 = 0xFF
+    ser         R19                             ; R19 = 0xFF
+    ldi         R23,0xB7                        ;
+    ldi         R24,0x1D                        ;
+    ldi         R25,0xC1                        ;
+    ldi         R26,0x04                        ;
+
+    sts         SPIE_DATA,R10                   ; Send 0
+FPGA_FLASH_check_crc32_read_byte:
+    lds         R22,SPIE_STATUS
     sbrs        R22,0x7
-    rjmp        LAB_code_000be0
-    lds         R22,SPIE_DATA               ;= ??
+    rjmp        FPGA_FLASH_check_crc32_read_byte
+    lds         R22,SPIE_DATA                   ; R22 = FPGA_FLASH[address]
+
     cp          R0,YL
     cpc         R1,YH
-    cpc         R2,ZL
-    brbs        CPU_Z_bp, LAB_code_000bf0
-    sts         SPIE_DATA,R10                   ;= ??
-    rcall       FUN_code_000bf2                         ;undefined FUN_code_000bf2(undefined2...
-    adiw        Y,0x1
-    adc         ZL,R10
-    rjmp        LAB_code_000be0
+    cpc         R2,ZL                           ; if (R0-R2 == R28-R30) // if (R0-R2 == address++)???
+    brbs        CPU_Z_bp, LAB_code_000bf0       ;   jump
+
+    sts         SPIE_DATA,R10                   ; Send 0
+    rcall       CRC32_calculation               ;
+    adiw        Y,0x1                           ;
+    adc         ZL,R10                          ; address++;
+    rjmp        FPGA_FLASH_check_crc32_read_byte; read next byte
 LAB_code_000bf0:
-    rcall       FUN_code_000bf2                         ;undefined FUN_code_000bf2(undefined2...
+    rcall       CRC32_calculation               ;
     rjmp        RETURN_WITH_DISABLE_FLASH_CHIP_SELECT
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
 ;undefined FUN_code_000bf2()
 .org (0x0bf2 << 1)
-FUN_code_000bf2:
-    ldi         R20,0x8
-LAB_code_000bf3:
-    add         R18,R18
-    adc         R19,R19
-    adc         R16,R16
-    adc         R17,R17
-    brbc        CPU_C_bp, LAB_code_000bfb
-    lsr         R22
-    brbs        CPU_C_bp, LAB_code_000c01
-    rjmp        LAB_code_000bfd
-LAB_code_000bfb:
-    lsr         R22
-    brbc        CPU_C_bp, LAB_code_000c01
-LAB_code_000bfd:
-    eor         R18,R23
-    eor         R19,R24
-    eor         R16,R25
-    eor         R17,XL
-LAB_code_000c01:
-    dec         R20
-    brbc        CPU_Z_bp, LAB_code_000bf3
+CRC32_calculation:                          ; uint32_t A = R17 << 24 | R16 << 16 | R19 << 8 | R18;
+    ldi         R20,0x8                     ; uint32_t B = R26 << 24 | R25  < 16 | R24 << 8 | R23;
+CRC32_loop:                                 ; for (int i = 8; i >  0; i--){
+    add         R18,R18                     ;   A = A << 1
+    adc         R19,R19                     ;
+    adc         R16,R16                     ;
+    adc         R17,R17                     ;
+    brbc        CPU_C_bp, CRC32_else        ; if (A not overflow){
+    lsr         R22                         ;   R22 = R22 << 1;
+    brbs        CPU_C_bp, CRC32_return      ;   if (R22 overflow) return;
+    rjmp        CRC32_skip_else             ; } else {
+CRC32_else:                                 ;
+    lsr         R22                         ;   R22 = R22 << 1;
+    brbc        CPU_C_bp, CRC32_return      ;   if (R22 not overflow) return;
+CRC32_skip_else:                            ; }
+    eor         R18,R23                     ; A = A ^ B;
+    eor         R19,R24                     ;
+    eor         R16,R25                     ;
+    eor         R17,R26                     ;
+CRC32_return:                               ;
+    dec         R20                         ;
+    brbc        CPU_Z_bp, CRC32_loop        ; }
     ret
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
 ;undefined FUN_code_000c04()
 .org (0x0c04 << 1)
-FUN_code_000c04:
+; Send command with 3 address bytes
+; After finish transaction keep CS# LOW
+; Parameters:
+;   R16 - instruction code
+;   R20, R21, R22 - arguments
+FPGA_FLASH_send_command_with_3_args:
     ldi         R17,0x10
-    sts         PORTE_OUTCLR,R17                ;= ??
+    sts         PORTE_OUTCLR,R17            ; Enable FPGA FLASH chip
+
     sts         SPIE_DATA,R16
 LAB_code_000c09:
     lds         R19,SPIE_STATUS             ;= ??
     sbrs        R19,0x7
     rjmp        LAB_code_000c09
+
     sts         SPIE_DATA,R22
 LAB_code_000c0f:
     lds         R19,SPIE_STATUS             ;= ??
     sbrs        R19,0x7
     rjmp        LAB_code_000c0f
+
     sts         SPIE_DATA,R21
 LAB_code_000c15:
     lds         R19,SPIE_STATUS             ;= ??
     sbrs        R19,0x7
     rjmp        LAB_code_000c15
+
     sts         SPIE_DATA,R20
 LAB_code_000c1b:
     lds         R19,SPIE_STATUS             ;= ??
     sbrs        R19,0x7
     rjmp        LAB_code_000c1b
+
     ret
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
@@ -3211,10 +3248,10 @@ LAB_code_000cfb:
     andi        R18,0x1f
     cpi         R18,0x1f
     brbc        CPU_Z_bp, LAB_code_000cf4
-    rcall       FUN_code_000d07                         ;undefined FUN_code_000d07(void)
+    rcall       EEPROM_erase                         ;undefined FUN_code_000d07(void)
     rjmp        LAB_code_000cf4
 LAB_code_000d04:
-    rcall       FUN_code_000d07                         ;undefined FUN_code_000d07(void)
+    rcall       EEPROM_erase                         ;undefined FUN_code_000d07(void)
     cbi         UPDATE_ERROR_STATUS_REGISTER,0x3
     rjmp        RETURN_WITH_OK_MSG_1
 ;************************************************************************************************
@@ -3222,21 +3259,23 @@ LAB_code_000d04:
 ;************************************************************************************************
 ;undefined FUN_code_000d07(void)
 .org (0x0d07 << 1)
-FUN_code_000d07:
+; Parameters:
+; in: Y - page address
+EEPROM_erase:
     and         R19,R19
-    brbs        CPU_Z_bp, LAB_code_000d1d
-    ldi         R16,0x35
-    sts         NVM_CMD,R16                     ;= ??
-    sts         NVM_ADDR0,YL                         ;= ??
-    sts         NVM_ADDR1,YH                   ;= ??
+    brbs        CPU_Z_bp, LAB_code_000d1d       ; if (R19 == 0) return 0
+    ldi         R16,0x35                        ; Erase and write EEPROM Page
+    sts         NVM_CMD,R16                     ; Write command to EEPROM
+    sts         NVM_ADDR0,YL                    ;
+    sts         NVM_ADDR1,YH                    ;
     ldi         R16,0x1
     ldi         R17,0xd8
     cli
-    sts         CPU_CCP,R17                     ;= ??
-    sts         NVM_CTRLA,R16                   ;= ??
+    sts         CPU_CCP,R17                     ; Enable Execute command
+    sts         NVM_CTRLA,R16                   ; Execute NCM command
     bset        CPU_I_bp
 LAB_code_000d18:
-    lds         R16,NVM_STATUS                  ;= ??
+    lds         R16,NVM_STATUS                  ; Wait until finish erase
     sbrc        R16,0x7
     rjmp        LAB_code_000d18
     eor         R19,R19

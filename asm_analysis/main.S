@@ -26,9 +26,13 @@
 ; float CHANNEL_PARAMETERS[CHANNEL_NUMBER][PARAMETER_NUMBER];
 ; float CHANNEL_PARAMETERS = *(0x2A68)
 
+#define RECV_MESSAGE_SIZE_ADDRESS 0x2000
+
 #define TRIGGER_WINDOW      0x222f
 #define CFD_SAT_LVL_LOW     0x2230
 #define CFD_SAT_LVL_HIGH    0x2231
+
+#define DAC_PARAMETER_ADDRESS 0x21CF
 
 ; Data at address: 0x2158, 0x2159 were cleared after reset
 
@@ -688,7 +692,7 @@ LAB_code_00036c:
     ori         R16,0x10
     sts         0x2157,R16
     bset        CPU_I_bp
-    rcall       FUN_code_0004ef                         ;uint6 FUN_code_0004ef(undefined2 par...
+    rcall       DAC_set_all_parameters                         ;uint6 FUN_code_0004ef(undefined2 par...
     rjmp        LAB_code_000383
 LAB_code_00037d:
     sbiw        R24,0x1
@@ -882,8 +886,8 @@ LAB_code_00042f:
     sbc         R17,R21
 LAB_code_000434:
     mov         R20,R23
-    ldi         YL,0xcf
-    ldi         YH,0x21
+    ldi         YL,lo8(DAC_PARAMETER_ADDRESS)
+    ldi         YH,hi8(DAC_PARAMETER_ADDRESS)
     add         R20,R20
     add         R20,R20
     mov         R18,R20
@@ -918,8 +922,8 @@ LAB_code_000450:
     cli
     call        fpga_msg_send_t2                         ;undefined FUN_code_001187(void)
     bset        CPU_I_bp
-    mov         R22,R23
-    call        dac_set_value                         ;undefined3 FUN_code_001082(void)
+    mov         R22,R23                                 ; R22 = 0
+    call        DAC_set_value_ADC_zero                         ;undefined3 FUN_code_001082(void)
 LAB_code_00045b:
     inc         R23
     cpi         R23,0xc
@@ -1033,8 +1037,8 @@ fpga_settings_reset:
     push        YL
     push        YH
     ldi         R18,0x80
-    ldi         YL,0xcf
-    ldi         YH,0x21
+    ldi         YL,lo8(DAC_PARAMETER_ADDRESS)
+    ldi         YH,hi8(DAC_PARAMETER_ADDRESS)
 LAB_code_0004cd:
     ld          R16,Y+
     ld          R17,Y+
@@ -1070,9 +1074,9 @@ LAB_code_0004d8:
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
-;uint6 FUN_code_0004ef()
+;undefined FUN_code_0004ef()
 .org (0x04ef << 1)
-FUN_code_0004ef:
+DAC_set_all_parameters:
     push        ZH
     push        ZL
     push        YH
@@ -1088,27 +1092,27 @@ FUN_code_0004ef:
     push        R1
     push        R0
     eor         R23,R23
-    ldi         YL,0xcf
-    ldi         YH,0x21
-LAB_code_000500:
-    ld          R20,Y+
-    ld          R21,Y+
-    mov         R22,R23
-    call        dac_set_value_3                         ;undefined4 FUN_code_001053(undefined...
-    ld          R20,Y+
-    ld          R21,Y+
-    mov         R22,R23
-    call        dac_set_value_2                         ;undefined3 FUN_code_001076(void)
-    ld          R20,Y+
-    ld          R21,Y+
-    mov         R22,R23
-    call        dac_set_value                         ;undefined3 FUN_code_001082(void)
-    ld          R20,Y+
-    ld          R21,Y+
-    mov         R22,R23
-    call        dac_set_value_3                         ;undefined4 FUN_code_001068(undefined...
-    inc         R23
-    cpi         R23,0xc
+    ldi         YL,lo8(DAC_PARAMETER_ADDRESS)
+    ldi         YH,hi8(DAC_PARAMETER_ADDRESS)
+LAB_code_000500:                                                ; for (int i = 0; i < 12; i++){
+    ld          R20,Y+                                          ;   DAC_set_value_CFD_threshold(address = i, value = DAC_PARAMS[i])
+    ld          R21,Y+                                          ;   DAC_set_value_CFD_offset(address = i, value = DAC_PARAMS[i])
+    mov         R22,R23                                         ;   DAC_set_value_ADC_zero(address = i, value = DAC_PARAMS[i])
+    call        DAC_set_value_CFD_threshold                     ;   DAC_set_value_ADC_delay(address = i, value = DAC_PARAMS[i])
+    ld          R20,Y+                                          ; }
+    ld          R21,Y+                                          ;
+    mov         R22,R23                                         ;
+    call        DAC_set_value_CFD_offset                        ;undefined3 FUN_code_001076(void)
+    ld          R20,Y+                                          ;
+    ld          R21,Y+                                          ;
+    mov         R22,R23                                         ;
+    call        DAC_set_value_ADC_zero                          ;undefined3 FUN_code_001082(void)
+    ld          R20,Y+                                          ;
+    ld          R21,Y+                                          ;
+    mov         R22,R23                                         ;
+    call        DAC_set_value_ADC_delay                         ;undefined4 FUN_code_001068(undefined...
+    inc         R23                                             ;
+    cpi         R23,0xc                                         ;
     brbc        CPU_Z_bp, LAB_code_000500
     pop         R0
     pop         R1
@@ -2056,8 +2060,8 @@ LAB_code_0008b8:
     call        FUN_code_0011e5                ;
     bset        CPU_I_bp
     ldi         R18,0x80
-    ldi         YL,0xcf
-    ldi         YH,0x21
+    ldi         YL,lo8(DAC_PARAMETER_ADDRESS)
+    ldi         YH,hi8(DAC_PARAMETER_ADDRESS)
 LAB_code_0008be:
     lsr         R15
     ror         R14
@@ -2113,7 +2117,7 @@ LAB_code_0008ec:
     andi        R22,0x3f
     lsr         R22
     lsr         R22
-    rcall       dac_set_value_3                         ;undefined4 FUN_code_001053(undefined...
+    rcall       DAC_set_value_CFD_threshold                         ;undefined4 FUN_code_001053(undefined...
     rjmp        LAB_code_00096b
 LAB_code_0008f5:
     cpi         R19,0x1
@@ -2147,7 +2151,7 @@ LAB_code_00090c:
     andi        R22,0x3f
     lsr         R22
     lsr         R22
-    rcall       dac_set_value_2                         ;undefined3 FUN_code_001076(void)
+    rcall       DAC_set_value_CFD_offset                         ;undefined3 FUN_code_001076(void)
     rjmp        LAB_code_00096b
 LAB_code_000915:
     cpi         R19,0x2
@@ -2181,7 +2185,7 @@ LAB_code_00092c:
     andi        R22,0x3f
     lsr         R22
     lsr         R22
-    rcall       dac_set_value                         ;undefined3 FUN_code_001082(void)
+    rcall       DAC_set_value_ADC_zero                         ;undefined3 FUN_code_001082(void)
     rjmp        LAB_code_00096b
 LAB_code_000935:
     ldi         R24,0x4e
@@ -2204,7 +2208,7 @@ LAB_code_00093b:
     andi        R22,0x3f
     lsr         R22
     lsr         R22
-    rcall       dac_set_value_3                         ;undefined4 FUN_code_001068(undefined...
+    rcall       DAC_set_value_ADC_delay                         ;undefined4 FUN_code_001068(undefined...
     rjmp        LAB_code_00096b
 LAB_code_00094c:
     ldi         R24,0xf
@@ -2225,8 +2229,8 @@ LAB_code_00095a:
     mov         R22,R18
     andi        R22,0xf
     mov         R23,R22
-    ldi         ZL,0xcf
-    ldi         ZH,0x21
+    ldi         ZL,lo8(DAC_PARAMETER_ADDRESS)
+    ldi         ZH,hi8(DAC_PARAMETER_ADDRESS)
     add         R23,R23
     add         R23,R23
     add         R23,R23
@@ -2235,7 +2239,7 @@ LAB_code_00095a:
     adc         ZH,R24
     ld          R20,Z+
     ld          R21,Z
-    rcall       dac_set_value_3                         ;undefined4 FUN_code_001053(undefined...
+    rcall       DAC_set_value_CFD_threshold                         ;undefined4 FUN_code_001053(undefined...
     rjmp        LAB_code_00096b
 LAB_code_00096b:
     inc         R18
@@ -3660,8 +3664,8 @@ cli_send_channel_cdf_adc:
     rcall       cli_get_next_char                         ;undefined FUN_code_00141e(void)
     cpi         R16,'\r'
     brbc        CPU_Z_bp, RETURN_WITH_SYNTAX_ERROR_MSG_9
-    ldi         YL,0xcf
-    ldi         YH,0x21
+    ldi         YL,lo8(DAC_PARAMETER_ADDRESS)
+    ldi         YH,hi8(DAC_PARAMETER_ADDRESS)
     eor         R20,R20
 cli_send_chanel_parameters_loop:
     ldi         ZL,0x68
@@ -3930,8 +3934,8 @@ LAB_code_000f54:
     adc         YH,R11
     st          Y+,R20
     st          Y,R21
-    ldi         YL,0xcf
-    ldi         YH,0x21
+    ldi         YL,lo8(DAC_PARAMETER_ADDRESS)
+    ldi         YH,hi8(DAC_PARAMETER_ADDRESS)
     mov         R10,R22
     add         R10,R10
     add         R10,R10
@@ -3941,7 +3945,7 @@ LAB_code_000f54:
     adc         YH,R11
     ld          R20,Y+
     ld          R21,Y
-    rcall       dac_set_value_3                         ;undefined4 FUN_code_001053(undefined...
+    rcall       DAC_set_value_CFD_threshold                         ;undefined4 FUN_code_001053(undefined...
     rjmp        RETURN_WITH_OK_MSG_1
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
@@ -4034,8 +4038,8 @@ LAB_code_000fb3:
     cli
     rcall       fpga_msg_send_t2                         ;undefined FUN_code_001187(void)
     bset        CPU_I_bp
-    ldi         YL,0xcf
-    ldi         YH,0x21
+    ldi         YL,lo8(DAC_PARAMETER_ADDRESS)
+    ldi         YH,hi8(DAC_PARAMETER_ADDRESS)
     add         R23,R23
     subi        R23,0xfa
     eor         R11,R11
@@ -4043,7 +4047,7 @@ LAB_code_000fb3:
     adc         YH,R11
     st          Y+,R20
     st          Y,R21
-    rcall       dac_set_value_3                         ;undefined4 FUN_code_001068(undefined...
+    rcall       DAC_set_value_ADC_delay                         ;undefined4 FUN_code_001068(undefined...
     rjmp        RETURN_WITH_OK_MSG_1
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
@@ -4085,15 +4089,15 @@ LAB_code_000fdf:
     cli
     rcall       fpga_msg_send_t2                         ;undefined FUN_code_001187(void)
     bset        CPU_I_bp
-    ldi         YL,0xcf
-    ldi         YH,0x21
+    ldi         YL,lo8(DAC_PARAMETER_ADDRESS)
+    ldi         YH,hi8(DAC_PARAMETER_ADDRESS)
     add         R10,R10
     eor         R11,R11
     add         YL,R10
     adc         YH,R11
     st          Y+,R20
     st          Y,R21
-    rcall       dac_set_value_3                         ;undefined4 FUN_code_001053(undefined...
+    rcall       DAC_set_value_CFD_threshold                         ;undefined4 FUN_code_001053(undefined...
 RETURN_WITH_OK_MSG_1:
     ldi         ZL,0x98
     ldi         ZH,0x29                             ; Send: "OK\n\r"
@@ -4142,8 +4146,8 @@ LAB_code_00100e:
     cli
     rcall       fpga_msg_send_t2                         ;undefined FUN_code_001187(void)
     bset        CPU_I_bp
-    ldi         YL,0xcf
-    ldi         YH,0x21
+    ldi         YL,lo8(DAC_PARAMETER_ADDRESS)
+    ldi         YH,hi8(DAC_PARAMETER_ADDRESS)
     add         R23,R23
     subi        R23,0xfc
     eor         R11,R11
@@ -4153,7 +4157,7 @@ LAB_code_00100e:
     st          Y+,R20
     st          Y,R21
     bset        CPU_I_bp
-    rcall       dac_set_value                         ;undefined3 FUN_code_001082(void)
+    rcall       DAC_set_value_ADC_zero                         ;undefined3 FUN_code_001082(void)
     cbi         UPDATE_ERROR_STATUS_REGISTER,0x3
     rjmp        RETURN_WITH_OK_MSG_1
 RETURN_WITH_SYNTAX_ERROR_MSG_2:
@@ -4198,8 +4202,8 @@ LAB_code_00103f:
     cli
     rcall       fpga_msg_send_t2                         ;undefined FUN_code_001187(void)
     bset        CPU_I_bp
-    ldi         YL,0xcf
-    ldi         YH,0x21
+    ldi         YL,lo8(DAC_PARAMETER_ADDRESS)
+    ldi         YH,hi8(DAC_PARAMETER_ADDRESS)
     add         R23,R23
     subi        R23,0xfe
     eor         R11,R11
@@ -4207,17 +4211,21 @@ LAB_code_00103f:
     adc         YH,R11
     st          Y+,R20
     st          Y,R21
-    rcall       dac_set_value_2                         ;undefined3 FUN_code_001076(void)
+    rcall       DAC_set_value_CFD_offset                         ;undefined3 FUN_code_001076(void)
     rjmp        RETURN_WITH_OK_MSG_1
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
 ;undefined4 FUN_code_001053()
 .org (0x1053 << 1)
-dac_set_value_3:
+; Parameter:
+; R20, R21 - data
+; R22 -- device address
+; R24 -- sync channel address
+DAC_set_value_CFD_threshold:
     push        R18
-    ldi         R18,0xc
-    ldi         R19,0x2
+    ldi         R18,0x0C
+    ldi         R19,0x02
     rcall       calculate_parameters_for_dac_2                         ;undefined FUN_code_0010a6(undefined2...
     ldi         ZL,0x63
     ldi         ZH,0x21
@@ -4228,7 +4236,7 @@ dac_set_value_3:
     add         R22,R22
     ori         R22,0x3
     ld          R20,Z+
-    ld             R21,Z
+    ld          R21,Z
     add         R16,R20
     adc         R17,R21
     com         R16
@@ -4241,7 +4249,11 @@ dac_set_value_3:
 ;************************************************************************************************
 ;undefined4 FUN_code_001068()
 .org (0x1068 << 1)
-dac_set_value_3:
+; Parameter:
+; R20, R21 - data
+; R22 -- device address
+; R24 -- sync channel address
+DAC_set_value_ADC_delay:
     push        R18
     ldi         R18,0x20
     ldi         R19,0x4e
@@ -4250,7 +4262,7 @@ dac_set_value_3:
     movw        R20,R18                                 ; R20 = R18, R21 = R19
     ldi         R18,0x72                                ; R18 = 0x72
     ldi         R19,0x2                                 ; R19 = 0x02
-    rcall       calculate_parameters_for_dac_2                         ;undefined FUN_code_0010a6(undefined2...
+    rcall       calculate_parameters_for_dac_2          ;undefined FUN_code_0010a6(undefined2...
     add         R22,R22                                 ;
     add         R22,R22                                 ;
     rcall       dac_send_value                          ;undefined3 FUN_code_001155(undefined...
@@ -4261,17 +4273,21 @@ dac_set_value_3:
 ;************************************************************************************************
 ;undefined3 FUN_code_001076(void)
 .org (0x1076 << 1)
-dac_set_value_2:
+; Parameter:
+; R20, R21 - data
+; R22 -- device address
+; R24 -- sync channel address
+DAC_set_value_CFD_offset:
     push        R18
     ldi         R18,0x88
     ldi         R19,0x41
-    rcall       calculate_parameters_for_dac                         ;undefined FUN_code_001098(void)
+    rcall       calculate_parameters_for_dac            ;undefined FUN_code_001098(void)
     ldi         R18,0x80
     eor         R17,R18
     add         R22,R22
     add         R22,R22
     ori         R22,0x2
-    rcall       dac_send_value                         ;undefined3 FUN_code_001155(undefined...
+    rcall       dac_send_value                          ;undefined3 FUN_code_001155(undefined...
     pop         R18
     ret
 ;************************************************************************************************
@@ -4279,17 +4295,21 @@ dac_set_value_2:
 ;************************************************************************************************
 ;undefined3 FUN_code_001082(void)
 .org (0x1082 << 1)
-dac_set_value:
+; Parameter:
+; R20, R21 - data
+; R22 -- device address
+; R24 -- sync channel address
+DAC_set_value_ADC_zero:
     push        R18
     ldi         R18,0x88
     ldi         R19,0x41
-    rcall       calculate_parameters_for_dac                         ;undefined FUN_code_001098(void)
+    rcall       calculate_parameters_for_dac            ;undefined FUN_code_001098(void)
     ldi         R18,0x80
     eor         R17,R18
     add         R22,R22
     add         R22,R22
     ori         R22,0x1
-    rcall       dac_send_value                         ;undefined3 FUN_code_001155(undefined...
+    rcall       dac_send_value                          ;undefined3 FUN_code_001155(undefined...
     pop         R18
     ret
 ;************************************************************************************************
@@ -4329,10 +4349,10 @@ check_fpga_is_ready:
 ;   R1  -
 ; Outputs:
 ; R17, R16
-calculate_parameters_for_dac:
-    eor         R17,R17                         ; R17 = 0                   // What this is?!?!?!
+calculate_parameters_for_dac:                                               //
+    eor         R17,R17                         ; R17 = 0                   //
     mul         R18,R20                         ; R18 = R18 * R20           //
-    sbrc        R0,0x7                          ; if (!(R0 & 0x07))         //
+    sbrc        R0,0x7                          ; if (!(R0 & 1<<7))         //
     inc         R1                              ;   R1++                    //
     mov         R16,R1                          ; R16 = R1                  //
     mul         R19,R20                         ; R19 = R19 * R20           //
@@ -4349,12 +4369,18 @@ calculate_parameters_for_dac:
 ;************************************************************************************************
 ;undefined FUN_code_0010a6()
 .org (0x10a6 << 1)
+; Description: (probably)
+; calculate
+; Parameters:
+; Inpust:
+; R18, R19 -- constant value
+; R20, R21 --
 calculate_parameters_for_dac_2:
     eor         R17,R17                         ; R17 = 0
     mul         R18,R20                         ; R18 = R18 * R20
     sbrc        R0,0x7                          ; if (!(R0 & 0x07))
     inc         R1                              ;   R1++
-    mov         R16,R1                          ; R16 = R1
+    mov         R16,R1                          ; R16 = R1                                              //
     mul         R19,R20                         ; R19 = R19 * R20
     add         R16,R0                          ; R16 = R16 + R0
     adc         R17,R1                          ; R17 = R1 + C
@@ -4532,7 +4558,12 @@ ths788_read_return:
 ;************************************************************************************************
 .org (0x1155 << 1)
 ; Params:
-;   R22 Select DAC_SYNC channel (probably range 1 - 3)
+;   R22 Select output channel
+;   R22 = XXXX BBAA
+;           B  -- device address
+;           A  -- channel address
+;           X  -- unused
+;   R23 Select sync
 ;   MSB, LSB
 ;   R17, R16 - Data to send
 dac_send_value:
@@ -4542,6 +4573,7 @@ dac_send_value:
     cli
     ldi         R23,0xD5                        ; SPI Control
     sts         SPIC_CTRL,R23                   ; Double clock, Enable, MSB first, prescaler = 16
+
     mov         R23,R22                         ; R23 = R22
     ldi         R24,0x1                         ; R24 = 0x01
     andi        R23,0x30                        ;
@@ -4553,15 +4585,15 @@ dac_send_value:
 LAB_code_001164:
     mov         R23,R22                         ;
 
-    swap        R22                             ; Select a device address
-    andi        R22,0xc0                        ;
+    swap        R22                             ;
+    andi        R22,0xc0                        ; Select a device address
 
-    add         R23,R23                         ;
-    andi        R23,0x6                         ; Select both DAC output
+    add         R23,R23                         ; device address << 1
+    andi        R23,0x6                         ; Select DAC output
 
     or          R22,R23                         ;
-    ori         R22,0x10                        ; Write to bugger and load
-                                                ; R22 = (R22 & 0x0C) << 4 | (R22 & 0x06) | 0x10
+    ori         R22,0x10                        ; Write to buffer and load
+                                                ; R22 = (R22 & 0x0C) << 4 | ((R22 << 1) & 0x06) | 0x10
 
     sts         PORTC_OUTCLR,R24                ; Write select DAC_SYNC channel
 
@@ -4761,7 +4793,7 @@ LAB_code_00121e:
     lds         R13,SPIC_DATA                   ; Save data 5
     sts         SPIC_DATA,R21                   ; SPI send to FPGA 0x00
 LAB_code_001226:
-    lds         R22,SPIC_STATU
+    lds         R22,SPIC_STATUS
     sbrs        R22,0x7
     rjmp        LAB_code_001226
     lds         R12,SPIC_DATA                   ; Save data 6
@@ -5466,7 +5498,7 @@ CLI_GET_NEXT_ready_to_read:
     add         ZL,R17
     adc         ZH,R18
     ld          R18,Z                                       ; R18 = RECV_BUFFER[RECV_CURRENT_CHAR_INDEX];
-    sts         RECV_MESSAGE_SIZE,R17                       ; RECV_MESSAGE_SIZE = RECV_CURRENT_CHAR_INDEX;
+    sts         RECV_MESSAGE_SIZE_ADDRESS,R17               ; RECV_MESSAGE_SIZE = RECV_CURRENT_CHAR_INDEX;
     cpi         R18,'\r'                                    ;
     brbc        CPU_Z_bp, CLI_GET_NEXT_end_transmission
     lds         R17,SERIAL_RECV_MSG_LEN                     ;
@@ -5555,26 +5587,27 @@ cli_send_buf_return:
     pop         ZH
     ret
 
-    .org (0x148b << 1) ; Flash address: 0x2916              NOTE: PLL SPI DATA
-    .byte			0x08, 0x18, 0x00, 0x00,	; 0x00001808 // 1
-    .byte           0x20, 0x03, 0x07, 0xeb, ; 0xEB070320 // 2
-    .byte           0x21, 0x03, 0x80, 0xeb, ; 0x210380EB // 3
-    .byte           0x02, 0x03, 0x06, 0xeb, ; 0x020306EB // 4
-    .byte           0x03, 0x03, 0x80, 0xeb, ; 0x030380EB // 5
-    .byte           0x34, 0x03, 0x84, 0x68, ; 0x34038468 // 6
-    .byte           0x35, 0x0f, 0x04, 0x40, ; 0x350F0440 // 7
-    .byte           0x86, 0x01, 0xfe, 0xc0, ; 0x8601FEC0 // 8
-    .byte           0xf7, 0xbb, 0x42, 0xbd, ; 0xF7BB42BD // 9
-    .byte           0x86, 0x01, 0xfe, 0xc4, ; 0x8601FEC4 // 10 End PLL SPI DATA
-    .byte           0x20, 0x03, 0x07, 0x69, ; 0x20030769
-    .byte           0x21, 0x03, 0x80, 0x69, ; 0x21038069
-    .byte           0x02, 0x03, 0x06, 0x69, ; 0x02030669
-    .byte           0x03, 0x03, 0x80, 0x69, ; 0x03038069
-    .byte           0x34, 0x03, 0x84, 0x68, ; 0x34038468
-    .byte           0x35, 0x0f, 0x04, 0x40, ; 0x350F0440
-    .byte           0x86, 0x01, 0xee, 0xc0, ; 0x8601EEC0
-    .byte           0xf7, 0x37, 0x78, 0xbc, ; 0xF73778BC
-    .byte           0x1f, 0x00
+    .org (0x148b << 1) ; Flash address: 0x2916
+;                                                                                       start address:
+    .byte           0x08, 0x18, 0x00, 0x00 	; 0x00001808 // 1 PLL SPI DATA              0x2916
+    .byte           0x20, 0x03, 0x07, 0xeb  ; 0xEB070320 // 2                           0x291A
+    .byte           0x21, 0x03, 0x80, 0xeb  ; 0x210380EB // 3                           0x291E
+    .byte           0x02, 0x03, 0x06, 0xeb  ; 0x020306EB // 4                           0x2922
+    .byte           0x03, 0x03, 0x80, 0xeb  ; 0x030380EB // 5                           0x2926
+    .byte           0x34, 0x03, 0x84, 0x68  ; 0x34038468 // 6                           0x292A
+    .byte           0x35, 0x0f, 0x04, 0x40  ; 0x350F0440 // 7                           0x292E
+    .byte           0x86, 0x01, 0xfe, 0xc0  ; 0x8601FEC0 // 8                           0x2932
+    .byte           0xf7, 0xbb, 0x42, 0xbd  ; 0xF7BB42BD // 9                           0x2936
+    .byte           0x86, 0x01, 0xfe, 0xc4  ; 0x8601FEC4 // 10 End PLL SPI DATA         0x293A
+    .byte           0x20, 0x03, 0x07, 0x69  ; 0x20030769                                0x293E
+    .byte           0x21, 0x03, 0x80, 0x69  ; 0x21038069                                0x2942
+    .byte           0x02, 0x03, 0x06, 0x69  ; 0x02030669                                0x2946
+    .byte           0x03, 0x03, 0x80, 0x69  ; 0x03038069                                0x294A
+    .byte           0x34, 0x03, 0x84, 0x68  ; 0x34038468                                0x294E
+    .byte           0x35, 0x0f, 0x04, 0x40  ; 0x350F0440                                0x2952
+    .byte           0x86, 0x01, 0xee, 0xc0  ; 0x8601EEC0                                0x2956
+    .byte           0xf7, 0x37, 0x78, 0xbc  ; 0xF73778BC                                0x295A
+    .byte           0x1f, 0x00              ;                                           0x295E
 
     .org (0x14b1 << 1)  ; Flash address: 0x2962
     .string         "\r\nPMxx control interface ready\r\n"

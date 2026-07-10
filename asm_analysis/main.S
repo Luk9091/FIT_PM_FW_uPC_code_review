@@ -3587,12 +3587,12 @@ channels_read:
     eor         R21,R21
 LAB_code_000e36:
     ldi         ZL,0xc6
-    ldi         ZH,0x2a
-    rcall       cli_send_msg                         ;undefined FUN_code_001413(void)
+    ldi         ZH,0x2a                                 ; Send message: "CH:"
+    rcall       cli_send_msg                            ;undefined FUN_code_001413(void)
     mov         R16,R20
-    eor         R17,R17
+    eor         R17,R17                                 ; Send: 0x00 00
     rcall       cli_send_uint16                         ;undefined FUN_code_0013a7(void)
-    rcall       cli_send_msg                         ;undefined FUN_code_001413(void)
+    rcall       cli_send_msg                            ;undefined FUN_code_001413(void)
     ldi         YL,0x63
     ldi         YH,0x21
     mov         R22,R20
@@ -4224,8 +4224,8 @@ LAB_code_00103f:
 ; R24 -- sync channel address
 DAC_set_value_CFD_threshold:
     push        R18
-    ldi         R18,0x0C
-    ldi         R19,0x02
+    ldi         R18,0x0C                        ; decimal value / 256
+    ldi         R19,0x02                        ; integer
     rcall       calculate_parameters_for_dac_2                         ;undefined FUN_code_0010a6(undefined2...
     ldi         ZL,0x63
     ldi         ZH,0x21
@@ -4256,12 +4256,12 @@ DAC_set_value_CFD_threshold:
 DAC_set_value_ADC_delay:
     push        R18
     ldi         R18,0x20
-    ldi         R19,0x4e
-    sub         R18,R20                                 ; 0x20 - R20
-    sbc         R19,R21                                 ; 0x4E - R21 - C
-    movw        R20,R18                                 ; R20 = R18, R21 = R19
-    ldi         R18,0x72                                ; R18 = 0x72
-    ldi         R19,0x2                                 ; R19 = 0x02
+    ldi         R19,0x4e                                ; R19:R18 = 20 000
+    sub         R18,R20                                 ;
+    sbc         R19,R21                                 ;
+    movw        R20,R18                                 ; x = 20 000 - x
+    ldi         R18,0x72                                ; decimal value / 256
+    ldi         R19,0x02                                ; integer value
     rcall       calculate_parameters_for_dac_2          ;undefined FUN_code_0010a6(undefined2...
     add         R22,R22                                 ;
     add         R22,R22                                 ;
@@ -4279,8 +4279,8 @@ DAC_set_value_ADC_delay:
 ; R24 -- sync channel address
 DAC_set_value_CFD_offset:
     push        R18
-    ldi         R18,0x88
-    ldi         R19,0x41
+    ldi         R18,0x88                                ; decimal value / 256
+    ldi         R19,0x41                                ; integer value
     rcall       calculate_parameters_for_dac            ;undefined FUN_code_001098(void)
     ldi         R18,0x80
     eor         R17,R18
@@ -4301,8 +4301,8 @@ DAC_set_value_CFD_offset:
 ; R24 -- sync channel address
 DAC_set_value_ADC_zero:
     push        R18
-    ldi         R18,0x88
-    ldi         R19,0x41
+    ldi         R18,0x88                                ; decimal value / 256
+    ldi         R19,0x41                                ; integer value
     rcall       calculate_parameters_for_dac            ;undefined FUN_code_001098(void)
     ldi         R18,0x80
     eor         R17,R18
@@ -4339,16 +4339,12 @@ check_fpga_is_ready:
 ;************************************************************************************************
 ;undefined FUN_code_001098(void)
 .org (0x1098 << 1)
-; Uknown
+; Multiplication function: x * a => y range from 0 to 65 535
 ; Inputs:
-;   R18 - unsigned int = 0x81
-;   R19 - unsigned int = 0x41
-;   R20 -
-;   R21 - signed int
-;   R0  -
-;   R1  -
+;   R19:R18 -- A - input parameter R19 - integer, R18 - decimal value
+;   R21:R20 -- X - signed int
 ; Outputs:
-; R17, R16
+;   R17:R16
 calculate_parameters_for_dac:                                               //
     eor         R17,R17                         ; R17 = 0                   //
     mul         R18,R20                         ; R18 = R18 * R20           //
@@ -4369,12 +4365,15 @@ calculate_parameters_for_dac:                                               //
 ;************************************************************************************************
 ;undefined FUN_code_0010a6()
 .org (0x10a6 << 1)
-; Description: (probably)
-; calculate
+; Description:
+; Multiplication function: x * a => y range from 0 to 65 535, with top limit.
+; Value over 65 535 -> 65 535
 ; Parameters:
 ; Inpust:
-; R18, R19 -- constant value
-; R20, R21 --
+;   R19:R18 -- A - input parameter R19 - integer, R18 - decimal value
+;   R21:R20 -- X - unsigned int
+; Outputs:
+;   R17:R16
 calculate_parameters_for_dac_2:
     eor         R17,R17                         ; R17 = 0
     mul         R18,R20                         ; R18 = R18 * R20

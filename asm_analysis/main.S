@@ -7,7 +7,7 @@
 #define UPDATE_CODE_UNNOWN_2                1 << 3  // unknown error code
 
 #define SERIAL_RECV_MSG_LEN 0x2005
-#define FPGA_COMMUNICATION_FLAG 0x2006 // WIPLAB_code_001449
+#define FPGA_COMMUNICATION_FLAG 0x2006 // WIP
 
 #define SEND_MESSAGE_SIZE   0x2003
 #define SEND_BUFFER_SIZE    0x2004
@@ -33,6 +33,15 @@
 #define CFD_SAT_LVL_HIGH    0x2231
 
 #define DAC_PARAMETER_ADDRESS 0x21CF
+
+#define CFD_THRESHOLD_LIMIT_MAX 30000
+#define CFD_THRESHOLD_LIMIT_MIN   300
+#define CFD_OFFSET_LIMIT_MAX      500
+#define CFD_OFFSET_LIMIT_MIN     -500
+#define ADC_ZERO_LIMIT_MAX        500
+#define ADC_ZERO_LIMIT_MIN       -500
+#define ADC_DELAY_LIMIT_MAX     20000
+#define ADC_DELAY_LIMIT_MIN         0    ; undefined
 
 ; Data at address: 0x2158, 0x2159 were cleared after reset
 
@@ -283,17 +292,17 @@ LAB_code_0001c7:
 LAB_code_0001ca:
     ldi         XL,0x35
     ldi         XH,0x22
-    lds         R18,0x2435                   ;= ??
+    lds         R18,0x2435                      ;= ??
     add         XH,R18
     ldi         R19,0x1
     eor         R18,R19
-    sts         0x2435,R18                   ;= ??
-    sts         DMA_CH1_DESTADDR0,XL           ;= ??
-    sts         DMA_CH1_DESTADDR1,XH           ;= ??
+    sts         0x2435,R18                      ;= ??
+    sts         DMA_CH1_DESTADDR0,XL            ;= ??
+    sts         DMA_CH1_DESTADDR1,XH            ;= ??
     eor         R20,R20
     sts         DMA_CH1_DESTADDR2,R20           ;= ??
     sts         DMA_CH1_TRFCNT,R16              ;= ??
-    sts         0x0125,R17                ;= ??
+    sts         0x0125,R17                      ;= ??
     rcall       WAIT_UNTIL_DMA_FINISH_TRANSFER                         ;undefined FUN_code_000236(void)
     ldi         R16,0x84
     sts         DMA_CH1_CTRLA,R16               ;= ??
@@ -324,28 +333,28 @@ LAB_code_0001eb:
     ldi         R16,0xb4
     sts         DMA_CH0_CTRLA,R16               ;= ??
 LAB_code_000204:
-    call        FPGA_FLASH_wait_until_finish_write                         ;undefined FUN_code_000b9d(void)
-    call        FPGA_FLASH_write_data                   ; undefined FUN_code_000b59(void)
+    call        FPGA_FLASH_wait_until_finish_write                          ; undefined FUN_code_000b9d(void)
+    call        FPGA_FLASH_write_data                                       ; undefined FUN_code_000b59(void)
     brbs        CPU_C_bp, LAB_code_00020f
     and         R21,R21
     brbs        CPU_Z_bp,LAB_code_00020c
     rjmp        LAB_code_0001b7
 LAB_code_00020c:
-    call        FPGA_FLASH_wait_until_finish_write                         ;undefined FUN_code_000b9d(void)
+    call        FPGA_FLASH_wait_until_finish_write                          ; undefined FUN_code_000b9d(void)
     rjmp        LAB_code_0001b5
 LAB_code_00020f:
-    call        FPGA_FLASH_wait_until_finish_write                         ;undefined FUN_code_000b9d(void)
-    call        FPGA_FLASH_check_crc32_from_to                         ;undefined FUN_code_000bb9(undefined2...
+    call        FPGA_FLASH_wait_until_finish_write                          ; undefined FUN_code_000b9d(void)
+    call        FPGA_FLASH_check_crc32_from_to                              ; undefined FUN_code_000bb9(undefined2...
     ldi         XL,0x3d
     ldi         XH,0x24
     st          X+,R18
     st          X+,R19
     st          X+,R16
     st          X+,R17
-    rcall       WAIT_UNTIL_DMA_FINISH_TRANSFER                         ;undefined FUN_code_000236(void)
+    rcall       WAIT_UNTIL_DMA_FINISH_TRANSFER                              ; undefined FUN_code_000236(void)
     eor         R16,R16
-    sts         DMA_CTRL,R16                         ;= ??
-    call        FUN_code_000b3f                         ;undefined FUN_code_000b3f(void)
+    sts         DMA_CTRL,R16                                                ;= ??
+    call        FUN_code_000b3f                                             ; undefined FUN_code_000b3f(void)
     pop         XH
     pop         XL
     pop         R25
@@ -441,7 +450,7 @@ LAB_code_00026a:
     brbs        CPU_Z_bp, LAB_code_00028c
     ldi         R18,0x7f
     cli
-    call        fpga_msg_read_t1                         ;undefined FUN_code_0011b4(undefined2...
+    call        fpga_msg_read_t1                            ; undefined FUN_code_0011b4(undefined2...
     bset        CPU_I_bp
     andi        R16,0xf
     cpi         R16,0xf
@@ -451,7 +460,7 @@ LAB_code_00026a:
     brbs        CPU_Z_bp, LAB_code_0002b8
     rjmp        LAB_code_00031a
 LAB_code_00027c:
-    rcall       fpga_settings_reset                         ;undefined FUN_code_0004c5(void)
+    rcall       fpga_settings_reset                         ; undefined FUN_code_0004c5(void)
     ldi         R16,0x2
     sts         PORTE_INTFLAGS,R16
     ldi         R16,0x9
@@ -460,12 +469,12 @@ LAB_code_00027c:
     ldi         R16,0x0
     ldi         R17,0x8
     cli
-    call        fpga_msg_send_t2                         ;undefined FUN_code_001187(void)
+    call        fpga_msg_send_t2                            ; undefined FUN_code_001187(void)
     bset        CPU_I_bp
     ldi         R16,0x80
     rjmp        LAB_code_0002c0
 LAB_code_00028c:
-    lds         R16,PORTD_IN                ;= ??
+    lds         R16,PORTD_IN                                ; = ??
     sbrs        R16,0x3
     rjmp        LAB_code_00031b
     ldi         R16,0x80
@@ -482,7 +491,7 @@ LAB_code_000298:
 LAB_code_00029b:
     ldi         R16,0x4
 LAB_code_00029c:
-    call        ths788_read                         ;undefined5 FUN_code_001104(undefined...
+    call        ths788_read                             ; undefined5 FUN_code_001104(undefined...
     or          R20,R17
     subi        R16,0xe0
     cpi         R16,0xc4
@@ -501,7 +510,7 @@ LAB_code_0002ab:
     eor         R19,R19
 LAB_code_0002ad:
     cli
-    call        ths788_read                         ;undefined5 FUN_code_001104(undefined...
+    call        ths788_read                             ; undefined5 FUN_code_001104(undefined...
     bset        CPU_I_bp
     andi        R17,0xf
     cpi         R17,0x1
@@ -512,7 +521,7 @@ LAB_code_0002ad:
     rjmp        LAB_code_0002c5
 LAB_code_0002b8:
     cli
-    lds         R16,0x2157               ;= ??
+    lds         R16,0x2157                              ; = ??
     ori         R16,0x80
     sts         0x2157,R16
     bset        CPU_I_bp
@@ -645,7 +654,7 @@ LAB_code_00033d:
     sts         PORTE_OUTCLR,R16
 LAB_code_000349:
     sbi         UPDATE_ERROR_STATUS_REGISTER,0x1                ; UPDATE CLK
-    rcall       set_status_and_vd8_led                         ;undefined FUN_code_00063f(void)
+    rcall       set_status_and_vd8_led                          ;undefined FUN_code_00063f(void)
     bset        CPU_I_bp
     eor         R16,R16
     st          Z,R16
@@ -655,7 +664,7 @@ LAB_code_00034f:
     ldi         R25,0x3
     ldi         R16,0x3
     sts         0x2442,R16
-    rcall       system_init                         ;undefined FUN_code_000688(void)
+    rcall       system_init                                     ;undefined FUN_code_000688(void)
     ldi         R16,0x3
     st          Z,R16
 LAB_code_000357:
@@ -668,7 +677,7 @@ LAB_code_00035a:
     brbc        CPU_Z_bp, LAB_code_00036c
     sbiw        R24,0x1
     brbc        CPU_Z_bp, LAB_code_000357
-    rcall       CDCE62005_control_rst                         ;undefined FUN_code_0006ee(void)
+    rcall       CDCE62005_control_rst                           ;undefined FUN_code_0006ee(void)
     ldi         R16,0x4
     sts         PORTD_OUTSET,R16
     ldi         R16,0x2
@@ -692,7 +701,7 @@ LAB_code_00036c:
     ori         R16,0x10
     sts         0x2157,R16
     bset        CPU_I_bp
-    rcall       DAC_set_all_parameters                         ;uint6 FUN_code_0004ef(undefined2 par...
+    rcall       DAC_set_all_parameters                         ;undefined FUN_code_0004ef(undefined2 par...
     rjmp        LAB_code_000383
 LAB_code_00037d:
     sbiw        R24,0x1
@@ -1102,15 +1111,15 @@ LAB_code_000500:                                                ; for (int i = 0
     ld          R20,Y+                                          ; }
     ld          R21,Y+                                          ;
     mov         R22,R23                                         ;
-    call        DAC_set_value_CFD_offset                        ;undefined3 FUN_code_001076(void)
+    call        DAC_set_value_CFD_offset                        ; undefined3 FUN_code_001076(void)
     ld          R20,Y+                                          ;
     ld          R21,Y+                                          ;
     mov         R22,R23                                         ;
-    call        DAC_set_value_ADC_zero                          ;undefined3 FUN_code_001082(void)
+    call        DAC_set_value_ADC_zero                          ; undefined3 FUN_code_001082(void)
     ld          R20,Y+                                          ;
     ld          R21,Y+                                          ;
     mov         R22,R23                                         ;
-    call        DAC_set_value_ADC_delay                         ;undefined4 FUN_code_001068(undefined...
+    call        DAC_set_value_ADC_delay                         ; undefined4 FUN_code_001068(undefined...
     inc         R23                                             ;
     cpi         R23,0xc                                         ;
     brbc        CPU_Z_bp, LAB_code_000500
@@ -2031,7 +2040,7 @@ LAB_code_0008a3:
     lds         R16,0x2006                      ;
     and         R16,R16                         ;
     brbs        CPU_Z_bp, LAB_code_0008a8       ; if 0x2006 == 0 goto fpga_data_exchange
-    rcall       fpga_data_exchange              ;
+    rcall       FPGA_DAC_DATA_ECHANGE              ;
 LAB_code_0008a8:                                ;
     lds         R16,SERIAL_RECV_MSG_LEN         ;
     and         R16,R16                         ;
@@ -2046,18 +2055,18 @@ LAB_code_0008a8:                                ;
 ;************************************************************************************************
 ;undefined FUN_code_0008ae(void)
 .org (0x08ae << 1)
-fpga_data_exchange:
+FPGA_DAC_DATA_ECHANGE:
     eor         R16,R16
     cli
-    sts         0x2006,R16                   ;= ??
-    lds         R16,PORTB_OUT                   ;= ??
-    sbrc        R16,0x7
-    rjmp        LAB_code_0008b8
-LAB_code_0008b6:
-    bset        CPU_I_bp
-    ret
-LAB_code_0008b8:
-    call        FUN_code_0011e5                ;
+    sts         0x2006,R16                      ;= ??
+    lds         R16,PORTB_OUT                   ;
+    sbrc        R16,0x7                         ;
+    rjmp        FPGA_DAC_DATA_EXCHANGE_run      ; if (FPGA_RST == 1) {
+FPGA_DAC_DATA_EXCHANGE_return:                  ;   sei()
+    bset        CPU_I_bp                        ;   return;
+    ret                                         ; }
+FPGA_DAC_DATA_EXCHANGE_run:
+    call        FUN_code_0011e5                 ; undefined FUN_code_0011e5
     bset        CPU_I_bp
     ldi         R18,0x80
     ldi         YL,lo8(DAC_PARAMETER_ADDRESS)
@@ -2078,7 +2087,7 @@ LAB_code_0008c9:
     cli
     lds         R20,PORTE_INTCTRL               ;= ??
     sbrs        R20,0x3
-    rjmp        LAB_code_0008b6
+    rjmp        FPGA_DAC_DATA_EXCHANGE_return
     call        fpga_msg_read_t1                         ;undefined FUN_code_0011b4(undefined2...
     bset        CPU_I_bp
     cpi         R18,0xb0
@@ -2088,25 +2097,25 @@ LAB_code_0008d4:
     mov         R19,R18
     andi        R19,0x3
     brbc        CPU_Z_bp, LAB_code_0008f5
-    ldi         R24,0x75
-    cpi         R16,0x31
+    ldi         R24,hi8(CFD_THRESHOLD_LIMIT_MAX + 1)
+    cpi         R16,lo8(CFD_THRESHOLD_LIMIT_MAX + 1)
     cpc         R17,R24
     brbc        CPU_C_bp, LAB_code_0008e2
-    ldi         R24,0x1
-    cpi         R16,0x2c
+    ldi         R24,hi8(CFD_THRESHOLD_LIMIT_MIN)
+    cpi         R16,lo8(CFD_THRESHOLD_LIMIT_MIN)
     cpc         R17,R24
     brbc        CPU_C_bp, LAB_code_0008ec
-    ldi         R16,0x2c
-    ldi         R17,0x1
+    ldi         R16,lo8(CFD_THRESHOLD_LIMIT_MIN)
+    ldi         R17,hi8(CFD_THRESHOLD_LIMIT_MIN)
     rjmp        LAB_code_0008e4
 LAB_code_0008e2:
-    ldi         R16,0x30
-    ldi         R17,0x75
+    ldi         R16,lo8(CFD_THRESHOLD_LIMIT_MAX)
+    ldi         R17,hi8(CFD_THRESHOLD_LIMIT_MAX)
 LAB_code_0008e4:
     cli
     lds         R20,PORTE_INTCTRL               ;= ??
     sbrs        R20,0x3
-    rjmp        LAB_code_0008b6
+    rjmp        FPGA_DAC_DATA_EXCHANGE_return
     call        fpga_msg_send_t2                         ;undefined FUN_code_001187(void)
     bset        CPU_I_bp
 LAB_code_0008ec:
@@ -2122,25 +2131,25 @@ LAB_code_0008ec:
 LAB_code_0008f5:
     cpi         R19,0x1
     brbc        CPU_Z_bp, LAB_code_000915
-    ldi         R24,0x1
-    cpi         R16,0xf5
+    ldi         R24,hi8(CFD_OFFSET_LIMIT_MAX + 1)
+    cpi         R16,lo8(CFD_OFFSET_LIMIT_MAX + 1)
     cpc         R17,R24
     brbc        CPU_S_bp,LAB_code_000902
-    ldi         R24,0xfe
-    cpi         R16,0xc
+    ldi         R24,hi8(CFD_OFFSET_LIMIT_MIN)
+    cpi         R16,lo8(CFD_OFFSET_LIMIT_MIN)
     cpc         R17,R24
     brbc        CPU_S_bp,LAB_code_00090c
-    ldi         R16,0xc
-    ldi         R17,0xfe
+    ldi         R16,lo8(CFD_OFFSET_LIMIT_MIN)
+    ldi         R17,hi8(CFD_OFFSET_LIMIT_MIN)
     rjmp        LAB_code_000904
 LAB_code_000902:
-    ldi         R16,0xf4
-    ldi         R17,0x1
+    ldi         R16,lo8(CFD_OFFSET_LIMIT_MAX)
+    ldi         R17,hi8(CFD_OFFSET_LIMIT_MAX)
 LAB_code_000904:
     cli
     lds         R20,PORTE_INTCTRL               ;= ??
     sbrs        R20,0x3
-    rjmp        LAB_code_0008b6
+    rjmp        FPGA_DAC_DATA_EXCHANGE_return
     call        fpga_msg_send_t2                         ;undefined FUN_code_001187(void)
     bset        CPU_I_bp
 LAB_code_00090c:
@@ -2156,25 +2165,25 @@ LAB_code_00090c:
 LAB_code_000915:
     cpi         R19,0x2
     brbc        CPU_Z_bp, LAB_code_000935
-    ldi         R24,0x1
-    cpi         R16,0xf5
+    ldi         R24,hi8(ADC_ZERO_LIMIT_MAX + 1)
+    cpi         R16,lo8(ADC_ZERO_LIMIT_MAX + 1)
     cpc         R17,R24
     brbc        CPU_S_bp,LAB_code_000922
-    ldi         R24,0xfe
-    cpi         R16,0xc
+    ldi         R24,hi8(ADC_ZERO_LIMIT_MIN)
+    cpi         R16,lo8(ADC_ZERO_LIMIT_MIN)
     cpc         R17,R24
     brbc        CPU_S_bp,LAB_code_00092c
-    ldi         R16,0xc
-    ldi         R17,0xfe
+    ldi         R16,lo8(ADC_ZERO_LIMIT_MIN)
+    ldi         R17,hi8(ADC_ZERO_LIMIT_MIN)
     rjmp        LAB_code_000924
 LAB_code_000922:
-    ldi         R16,0xf4
-    ldi         R17,0x1
+    ldi         R16,lo8(ADC_ZERO_LIMIT_MAX)
+    ldi         R17,hi8(ADC_ZERO_LIMIT_MAX)
 LAB_code_000924:
     cli
     lds         R20,PORTE_INTCTRL               ;= ??
     sbrs        R20,0x3
-    rjmp        LAB_code_0008b6
+    rjmp        FPGA_DAC_DATA_EXCHANGE_return
     call        fpga_msg_send_t2                         ;undefined FUN_code_001187(void)
     bset        CPU_I_bp
 LAB_code_00092c:
@@ -2188,17 +2197,17 @@ LAB_code_00092c:
     rcall       DAC_set_value_ADC_zero                         ;undefined3 FUN_code_001082(void)
     rjmp        LAB_code_00096b
 LAB_code_000935:
-    ldi         R24,0x4e
-    cpi         R16,0x21
+    ldi         R24, hi8(ADC_DELAY_LIMIT_MAX + 1)
+    cpi         R16, lo8(ADC_DELAY_LIMIT_MAX + 1)
     cpc         R17,R24
     brbs        CPU_C_bp, LAB_code_00093b
-    ldi         R16,0x20
-    ldi         R17,0x4e
+    ldi         R16,lo8(ADC_DELAY_LIMIT_MAX)
+    ldi         R17,hi8(ADC_DELAY_LIMIT_MAX)
 LAB_code_00093b:
     cli
     lds         R20,PORTE_INTCTRL               ;= ??
     sbrs        R20,0x3
-    rjmp        LAB_code_0008b6
+    rjmp        FPGA_DAC_DATA_EXCHANGE_return
     call        fpga_msg_send_t2                         ;undefined FUN_code_001187(void)
     bset        CPU_I_bp
     st          Y+,R16
@@ -2220,7 +2229,7 @@ LAB_code_00094c:
     cli
     lds         R20,PORTE_INTCTRL               ;= ??
     sbrs        R20,0x3
-    rjmp        LAB_code_0008b6
+    rjmp        FPGA_DAC_DATA_EXCHANGE_return
     call        fpga_msg_send_t2                         ;undefined FUN_code_001187(void)
     bset        CPU_I_bp
 LAB_code_00095a:
@@ -4232,16 +4241,16 @@ DAC_set_value_CFD_threshold:
     eor         R20,R20
     add         R22,R22
     add         ZL,R22
-    adc         ZH,R20
+    adc         ZH,R20                          ; DAC_threshold_offset[DAC_index]
     add         R22,R22
     ori         R22,0x3
     ld          R20,Z+
     ld          R21,Z
-    add         R16,R20
+    add         R16,R20                         ; add DAC_threshold_offset[DAC_index]
     adc         R17,R21
-    com         R16
+    com         R16                             ; negative value
     com         R17
-    rcall       dac_send_value                         ;undefined3 FUN_code_001155(undefined...
+    rcall       dac_send_value                  ; undefined3 FUN_code_001155(undefined...
     pop         R18
     ret
 ;************************************************************************************************
@@ -4255,8 +4264,8 @@ DAC_set_value_CFD_threshold:
 ; R24 -- sync channel address
 DAC_set_value_ADC_delay:
     push        R18
-    ldi         R18,0x20
-    ldi         R19,0x4e                                ; R19:R18 = 20 000
+    ldi         R18,lo8(20000)
+    ldi         R19,hi8(20000)                          ; R19:R18 = 20 000
     sub         R18,R20                                 ;
     sbc         R19,R21                                 ;
     movw        R20,R18                                 ; x = 20 000 - x

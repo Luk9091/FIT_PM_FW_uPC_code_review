@@ -1,0 +1,28 @@
+TARGET := "main"
+MODULE := "PM"
+
+CC  :="avr-gcc"
+MMCU:="atxmega128a3u"
+OBJ :="avr-objcopy"
+
+default: build
+
+build file="main.S":
+    @mkdir -p build
+    @echo "Start building"
+    {{CC}} -mmcu={{MMCU}} -Os -c {{file}} -o build/{{TARGET}}.o -I .;
+
+obj file="main.S": (build file)
+    @echo "Create ELF file"
+    {{CC}} -mmcu={{MMCU}} build/{{TARGET}}.o -o build/{{TARGET}}.elf -nostartfiles
+
+hex file="main.S": (obj file)
+    @echo "Create hex file"
+    {{OBJ}} -O ihex -R .eeprom build/{{TARGET}}.elf build/{{MODULE}}.hex
+
+bin file="main.S": (obj file)
+    @echo "Create bin file"
+    {{OBJ}} -O binary -R .eeprom build/{{TARGET}}.elf build/{{MODULE}}.bin
+
+clean:
+    @rm -r build/

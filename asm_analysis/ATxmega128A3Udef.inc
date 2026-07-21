@@ -2,7 +2,7 @@
 
 ;*************************************************************************
 ;* A P P L I C A T I O N   N O T E   F O R   T H E   A V R   F A M I L Y
-;* 
+;*
 ;* Number            : AVR000
 ;* File Name         : ATxmega128A3def.inc
 ;* Title             : Register/Bit Definitions for the ATxmega128A3
@@ -10,14 +10,14 @@
 ;* Version           : 1.00
 ;* Support E-mail    : avr@atmel.com
 ;* Target MCU        : ATxmega128A3
-;* 
+;*
 ;* DESCRIPTION
-;* When including this file in the assembly program file, all I/O register 
+;* When including this file in the assembly program file, all I/O register
 ;* names and I/O register bit names appearing in the data book can be used.
-;* In addition, the six registers forming the three data pointers X, Y and 
-;* Z have been assigned names XL - ZH. Highest RAM address for Internal 
-;* SRAM is also defined 
-;* 
+;* In addition, the six registers forming the three data pointers X, Y and
+;* Z have been assigned names XL - ZH. Highest RAM address for Internal
+;* SRAM is also defined
+;*
 ;*************************************************************************
 
 #ifndef _ATxmega128A3DEF_INC_
@@ -44,7 +44,7 @@
 ;***************************************************************************
 ;** GPIO - General Purpose IO Registers
 ;***************************************************************************
-	
+
 .equ GPIO_GPIOR0, 0		; General Purpose IO Register 0
 .equ GPIO_GPIOR1, 1		; General Purpose IO Register 1
 .equ GPIO_GPIOR2, 2		; General Purpose IO Register 2
@@ -65,14 +65,14 @@
 ;***************************************************************************
 ;** OCD - On-Chip Debug System
 ;***************************************************************************
-	
+
 .equ OCD_OCDR0, 46		; OCD Register 0
 .equ OCD_OCDR1, 47		; OCD Register 1
 
 ;***************************************************************************
 ;** CPU - CPU Registers
 ;***************************************************************************
-	
+
 .equ CPU_CCP, 52		; Configuration Change Protection
 .equ CPU_RAMPD, 56		; Ramp D
 .equ CPU_RAMPX, 57		; Ramp X
@@ -86,7 +86,7 @@
 ;***************************************************************************
 ;** CLK - Clock System
 ;***************************************************************************
-	
+
 .equ CLK_CTRL, 64		; Control Register
 .equ CLK_PSCTRL, 65		; Prescaler Control Register
 .equ CLK_LOCK, 66		; Lock register
@@ -95,13 +95,13 @@
 ;***************************************************************************
 ;** SLEEP - Sleep Controller
 ;***************************************************************************
-	
+
 .equ SLEEP_CTRL, 72		; Control Register
 
 ;***************************************************************************
 ;** OSC - Oscillator Control
 ;***************************************************************************
-	
+
 .equ OSC_CTRL, 80		; Control Register
 .equ OSC_STATUS, 81		; Status Register
 .equ OSC_XOSCCTRL, 82		; External Oscillator Control Register
@@ -113,7 +113,7 @@
 ;***************************************************************************
 ;** DFLLRC32M - DFLL for 32MHz RC Oscillator
 ;***************************************************************************
-	
+
 .equ DFLLRC32M_CTRL, 96		; Control Register
 .equ DFLLRC32M_CALA, 98		; Calibration Register A
 .equ DFLLRC32M_CALB, 99		; Calibration Register B
@@ -124,7 +124,7 @@
 ;***************************************************************************
 ;** DFLLRC2M - DFLL for 2MHz RC Oscillator
 ;***************************************************************************
-	
+
 .equ DFLLRC2M_CTRL, 104		; Control Register
 .equ DFLLRC2M_CALA, 106		; Calibration Register A
 .equ DFLLRC2M_CALB, 107		; Calibration Register B
@@ -135,7 +135,7 @@
 ;***************************************************************************
 ;** PR - Power Reduction
 ;***************************************************************************
-	
+
 .equ PR_PRGEN, 112		; General Power Reduction
 .equ PR_PRPA, 113		; Power Reduction Port A
 .equ PR_PRPB, 114		; Power Reduction Port B
@@ -147,14 +147,14 @@
 ;***************************************************************************
 ;** RST - Reset Controller
 ;***************************************************************************
-	
+
 .equ RST_STATUS, 120		; Status Register
 .equ RST_CTRL, 121		; Control Register
 
 ;***************************************************************************
 ;** WDT - Watch-Dog Timer
 ;***************************************************************************
-	
+
 .equ WDT_CTRL, 128		; Control
 .equ WDT_WINCTRL, 129		; Windowed Mode Control
 .equ WDT_STATUS, 130		; Status
@@ -162,7 +162,7 @@
 ;***************************************************************************
 ;** MCU - MCU Control
 ;***************************************************************************
-	
+
 .equ MCU_DEVID0, 144		; Device ID byte 0
 .equ MCU_DEVID1, 145		; Device ID byte 1
 .equ MCU_DEVID2, 146		; Device ID byte 2
@@ -175,7 +175,7 @@
 ;***************************************************************************
 ;** PMIC - Programmable Interrupt Controller
 ;***************************************************************************
-	
+
 .equ PMIC_STATUS, 160		; Status Register
 .equ PMIC_INTPRI, 161		; Interrupt Priority
 .equ PMIC_CTRL, 162		; Control Register
@@ -183,7 +183,7 @@
 ;***************************************************************************
 ;** DMA - DMA Controller
 ;***************************************************************************
-	
+
 .equ DMA_CTRL, 256		; Control
 .equ DMA_INTFLAGS, 259		; Transfer Interrupt Status
 .equ DMA_STATUS, 260		; Status
@@ -204,7 +204,8 @@
 .equ DMA_CH1_CTRLB, 289		; Channel Control
 .equ DMA_CH1_ADDRCTRL, 290		; Address Control
 .equ DMA_CH1_TRIGSRC, 291		; Channel Trigger Source
-.equ DMA_CH1_TRFCNT, 292		; Channel Block Transfer Count
+.equ DMA_CH1_TRFCNTL, 292		; Channel Block Transfer Count
+.equ DMA_CH1_TRFCNTH, 293		; Channel Block Transfer Count
 .equ DMA_CH1_REPCNT, 294		; Channel Repeat Count
 .equ DMA_CH1_SRCADDR0, 296		; Channel Source Address 0
 .equ DMA_CH1_SRCADDR1, 297		; Channel Source Address 1
@@ -240,7 +241,7 @@
 ;***************************************************************************
 ;** EVSYS - Event System
 ;***************************************************************************
-	
+
 .equ EVSYS_CH0MUX, 384		; Event Channel 0 Multiplexer
 .equ EVSYS_CH1MUX, 385		; Event Channel 1 Multiplexer
 .equ EVSYS_CH2MUX, 386		; Event Channel 2 Multiplexer
@@ -263,7 +264,7 @@
 ;***************************************************************************
 ;** NVM - Non Volatile Memory
 ;***************************************************************************
-	
+
 .equ NVM_ADDR0, 448		; Address Register 0
 .equ NVM_ADDR1, 449		; Address Register 1
 .equ NVM_ADDR2, 450		; Address Register 2
@@ -280,7 +281,7 @@
 ;***************************************************************************
 ;** ACA - Analog Comparator A
 ;***************************************************************************
-	
+
 .equ ACA_AC0CTRL, 896		; Analog Comparator 0 Control
 .equ ACA_AC1CTRL, 897		; Analog Comparator 1 Control
 .equ ACA_AC0MUXCTRL, 898		; Analog Comparator 0 MUX Control
@@ -293,7 +294,7 @@
 ;***************************************************************************
 ;** ACB - Analog Comparator B
 ;***************************************************************************
-	
+
 .equ ACB_AC0CTRL, 912		; Analog Comparator 0 Control
 .equ ACB_AC1CTRL, 913		; Analog Comparator 1 Control
 .equ ACB_AC0MUXCTRL, 914		; Analog Comparator 0 MUX Control
@@ -306,7 +307,7 @@
 ;***************************************************************************
 ;** ADCA - Analog to Digital Converter A
 ;***************************************************************************
-	
+
 .equ ADCA_CTRLA, 512		; Control Register A
 .equ ADCA_CTRLB, 513		; Control Register B
 .equ ADCA_REFCTRL, 514		; Reference Control
@@ -344,7 +345,7 @@
 ;***************************************************************************
 ;** ADCB - Analog to Digital Converter B
 ;***************************************************************************
-	
+
 .equ ADCB_CTRLA, 576		; Control Register A
 .equ ADCB_CTRLB, 577		; Control Register B
 .equ ADCB_REFCTRL, 578		; Reference Control
@@ -382,7 +383,7 @@
 ;***************************************************************************
 ;** DACB - Digital to Analog Converter B
 ;***************************************************************************
-	
+
 .equ DACB_CTRLA, 800		; Control Register A
 .equ DACB_CTRLB, 801		; Control Register B
 .equ DACB_CTRLC, 802		; Control Register C
@@ -397,7 +398,7 @@
 ;***************************************************************************
 ;** RTC - Real-Time Counter
 ;***************************************************************************
-	
+
 .equ RTC_CTRL, 1024		; Control Register
 .equ RTC_STATUS, 1025		; Status Register
 .equ RTC_INTCTRL, 1026		; Interrupt Control Register
@@ -410,7 +411,7 @@
 ;***************************************************************************
 ;** TWIC - Two-Wire Interface C
 ;***************************************************************************
-	
+
 .equ TWIC_CTRL, 1152		; TWI Common Control Register
 .equ TWIC_MASTER_CTRLA, 1153		; Control Register A
 .equ TWIC_MASTER_CTRLB, 1154		; Control Register B
@@ -429,7 +430,7 @@
 ;***************************************************************************
 ;** TWIE - Two-Wire Interface E
 ;***************************************************************************
-	
+
 .equ TWIE_CTRL, 1184		; TWI Common Control Register
 .equ TWIE_MASTER_CTRLA, 1185		; Control Register A
 .equ TWIE_MASTER_CTRLB, 1186		; Control Register B
@@ -448,7 +449,7 @@
 ;***************************************************************************
 ;** PORT_CFG - Port Configuration
 ;***************************************************************************
-	
+
 .equ PORTCFG_MPCMASK, 176		; Multi-pin Configuration Mask
 .equ PORTCFG_VPCTRLA, 178		; Virtual Port Control Register A
 .equ PORTCFG_VPCTRLB, 179		; Virtual Port Control Register B
@@ -457,7 +458,7 @@
 ;***************************************************************************
 ;** VPORT0 - Virtual Port 0
 ;***************************************************************************
-	
+
 .equ VPORT0_DIR, 16		; I/O Port Data Direction
 .equ VPORT0_OUT, 17		; I/O Port Output
 .equ VPORT0_IN, 18		; I/O Port Input
@@ -466,7 +467,7 @@
 ;***************************************************************************
 ;** VPORT1 - Virtual Port 1
 ;***************************************************************************
-	
+
 .equ VPORT1_DIR, 20		; I/O Port Data Direction
 .equ VPORT1_OUT, 21		; I/O Port Output
 .equ VPORT1_IN, 22		; I/O Port Input
@@ -475,7 +476,7 @@
 ;***************************************************************************
 ;** VPORT2 - Virtual Port 2
 ;***************************************************************************
-	
+
 .equ VPORT2_DIR, 24		; I/O Port Data Direction
 .equ VPORT2_OUT, 25		; I/O Port Output
 .equ VPORT2_IN, 26		; I/O Port Input
@@ -484,7 +485,7 @@
 ;***************************************************************************
 ;** VPORT3 - Virtual Port 3
 ;***************************************************************************
-	
+
 .equ VPORT3_DIR, 28		; I/O Port Data Direction
 .equ VPORT3_OUT, 29		; I/O Port Output
 .equ VPORT3_IN, 30		; I/O Port Input
@@ -493,7 +494,7 @@
 ;***************************************************************************
 ;** PORTA - Port A
 ;***************************************************************************
-	
+
 .equ PORTA_DIR, 1536		; I/O Port Data Direction
 .equ PORTA_DIRSET, 1537		; I/O Port Data Direction Set
 .equ PORTA_DIRCLR, 1538		; I/O Port Data Direction Clear
@@ -519,7 +520,7 @@
 ;***************************************************************************
 ;** PORTB - Port B
 ;***************************************************************************
-	
+
 .equ PORTB_DIR, 1568		; I/O Port Data Direction
 .equ PORTB_DIRSET, 1569		; I/O Port Data Direction Set
 .equ PORTB_DIRCLR, 1570		; I/O Port Data Direction Clear
@@ -545,7 +546,7 @@
 ;***************************************************************************
 ;** PORTC - Port C
 ;***************************************************************************
-	
+
 .equ PORTC_DIR, 1600		; I/O Port Data Direction
 .equ PORTC_DIRSET, 1601		; I/O Port Data Direction Set
 .equ PORTC_DIRCLR, 1602		; I/O Port Data Direction Clear
@@ -571,7 +572,7 @@
 ;***************************************************************************
 ;** PORTD - Port D
 ;***************************************************************************
-	
+
 .equ PORTD_DIR, 1632		; I/O Port Data Direction
 .equ PORTD_DIRSET, 1633		; I/O Port Data Direction Set
 .equ PORTD_DIRCLR, 1634		; I/O Port Data Direction Clear
@@ -597,7 +598,7 @@
 ;***************************************************************************
 ;** PORTE - Port E
 ;***************************************************************************
-	
+
 .equ PORTE_DIR, 1664		; I/O Port Data Direction
 .equ PORTE_DIRSET, 1665		; I/O Port Data Direction Set
 .equ PORTE_DIRCLR, 1666		; I/O Port Data Direction Clear
@@ -623,7 +624,7 @@
 ;***************************************************************************
 ;** PORTF - Port F
 ;***************************************************************************
-	
+
 .equ PORTF_DIR, 1696		; I/O Port Data Direction
 .equ PORTF_DIRSET, 1697		; I/O Port Data Direction Set
 .equ PORTF_DIRCLR, 1698		; I/O Port Data Direction Clear
@@ -649,7 +650,7 @@
 ;***************************************************************************
 ;** PORTR - Port R
 ;***************************************************************************
-	
+
 .equ PORTR_DIR, 2016		; I/O Port Data Direction
 .equ PORTR_DIRSET, 2017		; I/O Port Data Direction Set
 .equ PORTR_DIRCLR, 2018		; I/O Port Data Direction Clear
@@ -675,7 +676,7 @@
 ;***************************************************************************
 ;** TCC0 - Timer/Counter C0
 ;***************************************************************************
-	
+
 .equ TCC0_CTRLA, 2048		; Control Register A
 .equ TCC0_CTRLB, 2049		; Control Register B
 .equ TCC0_CTRLC, 2050		; Control register C
@@ -690,7 +691,8 @@
 .equ TCC0_INTFLAGS, 2060		; Interrupt Flag Register
 .equ TCC0_TEMP, 2063		; Temporary Register For 16-bit Access
 .equ TCC0_CNT, 2080		; Count
-.equ TCC0_PER, 2086		; Period
+.equ TCC0_PERL, 2086	; Period Low
+.equ TCC0_PERH, 2087	; Period High
 .equ TCC0_CCA, 2088		; Compare or Capture A
 .equ TCC0_CCB, 2090		; Compare or Capture B
 .equ TCC0_CCC, 2092		; Compare or Capture C
@@ -704,7 +706,7 @@
 ;***************************************************************************
 ;** TCC1 - Timer/Counter C1
 ;***************************************************************************
-	
+
 .equ TCC1_CTRLA, 2112		; Control  Register A
 .equ TCC1_CTRLB, 2113		; Control Register B
 .equ TCC1_CTRLC, 2114		; Control register C
@@ -729,7 +731,7 @@
 ;***************************************************************************
 ;** AWEXC - Advanced Waveform Extension C
 ;***************************************************************************
-	
+
 .equ AWEXC_CTRL, 2176		; Control Register
 .equ AWEXC_FDEMASK, 2178		; Fault Detection Event Mask
 .equ AWEXC_FDCTRL, 2179		; Fault Detection Control Register
@@ -745,13 +747,13 @@
 ;***************************************************************************
 ;** HIRESC - High-Resolution Extension C
 ;***************************************************************************
-	
+
 .equ HIRESC_CTRLA, 2192		; Control Register
 
 ;***************************************************************************
 ;** USARTC0 - Universal Asynchronous Receiver-Transmitter C0
 ;***************************************************************************
-	
+
 .equ USARTC0_DATA, 2208		; Data Register
 .equ USARTC0_STATUS, 2209		; Status Register
 .equ USARTC0_CTRLA, 2211		; Control Register A
@@ -763,7 +765,7 @@
 ;***************************************************************************
 ;** USARTC1 - Universal Asynchronous Receiver-Transmitter C1
 ;***************************************************************************
-	
+
 .equ USARTC1_DATA, 2224		; Data Register
 .equ USARTC1_STATUS, 2225		; Status Register
 .equ USARTC1_CTRLA, 2227		; Control Register A
@@ -775,7 +777,7 @@
 ;***************************************************************************
 ;** SPIC - Serial Peripheral Interface C
 ;***************************************************************************
-	
+
 .equ SPIC_CTRL, 2240		; Control Register
 .equ SPIC_INTCTRL, 2241		; Interrupt Control Register
 .equ SPIC_STATUS, 2242		; Status Register
@@ -784,7 +786,7 @@
 ;***************************************************************************
 ;** TCD0 - Timer/Counter D0
 ;***************************************************************************
-	
+
 .equ TCD0_CTRLA, 2304		; Control Register A
 .equ TCD0_CTRLB, 2305		; Control Register B
 .equ TCD0_CTRLC, 2306		; Control register C
@@ -813,7 +815,7 @@
 ;***************************************************************************
 ;** TCD1 - Timer/Counter D1
 ;***************************************************************************
-	
+
 .equ TCD1_CTRLA, 2368		; Control  Register A
 .equ TCD1_CTRLB, 2369		; Control Register B
 .equ TCD1_CTRLC, 2370		; Control register C
@@ -838,13 +840,13 @@
 ;***************************************************************************
 ;** HIRESD - High-Resolution Extension D
 ;***************************************************************************
-	
+
 .equ HIRESD_CTRLA, 2448		; Control Register
 
 ;***************************************************************************
 ;** USARTD0 - Universal Asynchronous Receiver-Transmitter D0
 ;***************************************************************************
-	
+
 .equ USARTD0_DATA, 2464		; Data Register
 .equ USARTD0_STATUS, 2465		; Status Register
 .equ USARTD0_CTRLA, 2467		; Control Register A
@@ -856,7 +858,7 @@
 ;***************************************************************************
 ;** USARTD1 - Universal Asynchronous Receiver-Transmitter D1
 ;***************************************************************************
-	
+
 .equ USARTD1_DATA, 2480		; Data Register
 .equ USARTD1_STATUS, 2481		; Status Register
 .equ USARTD1_CTRLA, 2483		; Control Register A
@@ -868,7 +870,7 @@
 ;***************************************************************************
 ;** SPID - Serial Peripheral Interface D
 ;***************************************************************************
-	
+
 .equ SPID_CTRL, 2496		; Control Register
 .equ SPID_INTCTRL, 2497		; Interrupt Control Register
 .equ SPID_STATUS, 2498		; Status Register
@@ -877,7 +879,7 @@
 ;***************************************************************************
 ;** TCE0 - Timer/Counter E0
 ;***************************************************************************
-	
+
 .equ TCE0_CTRLA, 2560		; Control Register A
 .equ TCE0_CTRLB, 2561		; Control Register B
 .equ TCE0_CTRLC, 2562		; Control register C
@@ -906,7 +908,7 @@
 ;***************************************************************************
 ;** TCE1 - Timer/Counter E1
 ;***************************************************************************
-	
+
 .equ TCE1_CTRLA, 2624		; Control  Register A
 .equ TCE1_CTRLB, 2625		; Control Register B
 .equ TCE1_CTRLC, 2626		; Control register C
@@ -931,7 +933,7 @@
 ;***************************************************************************
 ;** AWEXE - Advanced Waveform Extension E
 ;***************************************************************************
-	
+
 .equ AWEXE_CTRL, 2688		; Control Register
 .equ AWEXE_FDEMASK, 2690		; Fault Detection Event Mask
 .equ AWEXE_FDCTRL, 2691		; Fault Detection Control Register
@@ -947,13 +949,13 @@
 ;***************************************************************************
 ;** HIRESE - High-Resolution Extension E
 ;***************************************************************************
-	
+
 .equ HIRESE_CTRLA, 2704		; Control Register
 
 ;***************************************************************************
 ;** USARTE0 - Universal Asynchronous Receiver-Transmitter E0
 ;***************************************************************************
-	
+
 .equ USARTE0_DATA, 2720		; Data Register
 .equ USARTE0_STATUS, 2721		; Status Register
 .equ USARTE0_CTRLA, 2723		; Control Register A
@@ -965,7 +967,7 @@
 ;***************************************************************************
 ;** USARTE1 - Universal Asynchronous Receiver-Transmitter E1
 ;***************************************************************************
-	
+
 .equ USARTE1_DATA, 2736		; Data Register
 .equ USARTE1_STATUS, 2737		; Status Register
 .equ USARTE1_CTRLA, 2739		; Control Register A
@@ -977,7 +979,7 @@
 ;***************************************************************************
 ;** SPIE - Serial Peripheral Interface E
 ;***************************************************************************
-	
+
 .equ SPIE_CTRL, 2752		; Control Register
 .equ SPIE_INTCTRL, 2753		; Interrupt Control Register
 .equ SPIE_STATUS, 2754		; Status Register
@@ -986,7 +988,7 @@
 ;***************************************************************************
 ;** TCF0 - Timer/Counter F0
 ;***************************************************************************
-	
+
 .equ TCF0_CTRLA, 2816		; Control Register A
 .equ TCF0_CTRLB, 2817		; Control Register B
 .equ TCF0_CTRLC, 2818		; Control register C
@@ -1015,13 +1017,13 @@
 ;***************************************************************************
 ;** HIRESF - High-Resolution Extension F
 ;***************************************************************************
-	
+
 .equ HIRESF_CTRLA, 2960		; Control Register
 
 ;***************************************************************************
 ;** USARTF0 - Universal Asynchronous Receiver-Transmitter F0
 ;***************************************************************************
-	
+
 .equ USARTF0_DATA, 2976		; Data Register
 .equ USARTF0_STATUS, 2977		; Status Register
 .equ USARTF0_CTRLA, 2979		; Control Register A
@@ -1033,7 +1035,7 @@
 ;***************************************************************************
 ;** USARTF1 - Universal Asynchronous Receiver-Transmitter F1
 ;***************************************************************************
-	
+
 .equ USARTF1_DATA, 2992		; Data Register
 .equ USARTF1_STATUS, 2993		; Status Register
 .equ USARTF1_CTRLA, 2995		; Control Register A
@@ -1045,7 +1047,7 @@
 ;***************************************************************************
 ;** SPIF - Serial Peripheral Interface F
 ;***************************************************************************
-	
+
 .equ SPIF_CTRL, 3008		; Control Register
 .equ SPIF_INTCTRL, 3009		; Interrupt Control Register
 .equ SPIF_STATUS, 3010		; Status Register
@@ -1054,7 +1056,7 @@
 ;***************************************************************************
 ;** IRCOM - IR Communication Module
 ;***************************************************************************
-	
+
 .equ IRCOM_CTRL, 2296		; Control Register
 .equ IRCOM_TXPLCTRL, 2297		; IrDA Transmitter Pulse Length Control Register
 .equ IRCOM_RXPLCTRL, 2298		; IrDA Receiver Pulse Length Control Register
@@ -1062,7 +1064,7 @@
 ;***************************************************************************
 ;** AES - AES Crypto Module
 ;***************************************************************************
-	
+
 .equ AES_CTRL, 192		; AES Control Register
 .equ AES_STATUS, 193		; AES Status Register
 .equ AES_STATE, 194		; AES State Register
@@ -1260,6 +1262,8 @@
 .equ DMA_CH_ADDRCTRL_offset, 0x02		; Address Control
 .equ DMA_CH_TRIGSRC_offset, 0x03		; Channel Trigger Source
 .equ DMA_CH_TRFCNT_offset, 0x04		; Channel Block Transfer Count
+.equ DMA_CH_TRFCNTL_offset, 0x04		; Channel Block Transfer Count Low
+.equ DMA_CH_TRFCNTH_offset, 0x05		; Channel Block Transfer Count High
 .equ DMA_CH_REPCNT_offset, 0x06		; Channel Repeat Count
 .equ DMA_CH_SRCADDR0_offset, 0x08		; Channel Source Address 0
 .equ DMA_CH_SRCADDR1_offset, 0x09		; Channel Source Address 1
@@ -1580,7 +1584,7 @@
 ;***************************************************************************
 ;** LOCKBIT - Lockbits
 ;***************************************************************************
-	
+
 .equ LOCKBIT_LOCKBITS, 0		; Lock Bits
 
 
@@ -1590,7 +1594,7 @@
 ;***************************************************************************
 ;** FUSE - Fuses
 ;***************************************************************************
-	
+
 .equ FUSE_FUSEBYTE0, 0		; JTAG User ID
 .equ FUSE_FUSEBYTE1, 1		; Watchdog Configuration
 .equ FUSE_FUSEBYTE2, 2		; Reset Configuration
@@ -1604,7 +1608,7 @@
 ;***************************************************************************
 ;** GPIO - General Purpose IO
 ;***************************************************************************/
- 
+
 
 ;***************************************************************************
 ;** XOCD - On-Chip Debug System
@@ -1613,7 +1617,7 @@
 ; OCD_OCDR1 masks
 .equ OCD_OCDRD_bm, 0x01 ; OCDR Dirty bit mask
 .equ OCD_OCDRD_bp, 0 ; OCDR Dirty bit position
- 
+
 
 ;***************************************************************************
 ;** CPU - CPU
@@ -1656,7 +1660,7 @@
 .equ CPU_Z_bp, 1 ; Zero Flag bit position
 .equ CPU_C_bm, 0x01 ; Carry Flag bit mask
 .equ CPU_C_bp, 0 ; Carry Flag bit position
- 
+
 ; CCP signatures
 .equ CCP_SPM_gc, (0x9D<<0) ; SPM Instruction Protection
 .equ CCP_IOREG_gc, (0xD8<<0) ; IO Register Protection
@@ -1779,7 +1783,7 @@
 ; Masks for HIRES aready defined
 ; Masks for TC1 aready defined
 ; Masks for TC0 aready defined
- 
+
 ; System Clock Selection
 .equ CLK_SCLKSEL_RC2M_gc, (0x00<<0) ; Internal 2MHz RC Oscillator
 .equ CLK_SCLKSEL_RC32M_gc, (0x01<<0) ; Internal 32MHz RC Oscillator
@@ -1827,7 +1831,7 @@
 .equ SLEEP_SMODE2_bp, 3 ; Sleep Mode bit 2 position
 .equ SLEEP_SEN_bm, 0x01 ; Sleep Enable bit mask
 .equ SLEEP_SEN_bp, 0 ; Sleep Enable bit position
- 
+
 ; Sleep Mode
 .equ SLEEP_SMODE_IDLE_gc, (0x00<<1) ; Idle mode
 .equ SLEEP_SMODE_PDOWN_gc, (0x02<<1) ; Power-down Mode
@@ -1915,7 +1919,7 @@
 .equ OSC_RC32MCREF_bp, 1 ; 32MHz Calibration Reference bit position
 .equ OSC_RC2MCREF_bm, 0x01 ; 2MHz Calibration Reference bit mask
 .equ OSC_RC2MCREF_bp, 0 ; 2MHz Calibration Reference bit position
- 
+
 ; Oscillator Frequency Range
 .equ OSC_FRQRANGE_04TO2_gc, (0x00<<6) ; 0.4 - 2 MHz
 .equ OSC_FRQRANGE_2TO9_gc, (0x01<<6) ; 2 - 9 MHz
@@ -1976,7 +1980,7 @@
 .equ DFLL_CALH4_bp, 4 ; DFLL Calibration bits [12:7] bit 4 position
 .equ DFLL_CALH5_bm, (1<<5) ; DFLL Calibration bits [12:7] bit 5 mask
 .equ DFLL_CALH5_bp, 5 ; DFLL Calibration bits [12:7] bit 5 position
- 
+
 
 ;***************************************************************************
 ;** RST - Reset
@@ -2001,7 +2005,7 @@
 ; RST_CTRL masks
 .equ RST_SWRST_bm, 0x01 ; Software Reset bit mask
 .equ RST_SWRST_bp, 0 ; Software Reset bit position
- 
+
 
 ;***************************************************************************
 ;** WDT - Watch-Dog Timer
@@ -2042,7 +2046,7 @@
 ; WDT_STATUS masks
 .equ WDT_SYNCBUSY_bm, 0x01 ; Syncronization busy bit mask
 .equ WDT_SYNCBUSY_bp, 0 ; Syncronization busy bit position
- 
+
 ; Period setting
 .equ WDT_PER_8CLK_gc, (0x00<<2) ; 8 cycles (8ms @ 3.3V)
 .equ WDT_PER_16CLK_gc, (0x01<<2) ; 16 cycles (16ms @ 3.3V)
@@ -2089,7 +2093,7 @@
 .equ MCU_AWEXELOCK_bp, 2 ; AWeX on T/C E0 Lock bit position
 .equ MCU_AWEXCLOCK_bm, 0x01 ; AWeX on T/C C0 Lock bit mask
 .equ MCU_AWEXCLOCK_bp, 0 ; AWeX on T/C C0 Lock bit position
- 
+
 
 ;***************************************************************************
 ;** PMIC - Programmable Multi-level Interrupt Controller
@@ -2116,7 +2120,7 @@
 .equ PMIC_MEDLVLEN_bp, 1 ; Medium Level Enable bit position
 .equ PMIC_LOLVLEN_bm, 0x01 ; Low Level Enable bit mask
 .equ PMIC_LOLVLEN_bp, 0 ; Low Level Enable bit position
- 
+
 
 ;***************************************************************************
 ;** DMA - DMA Controller
@@ -2261,7 +2265,7 @@
 .equ DMA_CH1PEND_bp, 1 ; Channel 1 Block Transfer Pending bit position
 .equ DMA_CH0PEND_bm, 0x01 ; Channel 0 Block Transfer Pending bit mask
 .equ DMA_CH0PEND_bp, 0 ; Channel 0 Block Transfer Pending bit position
- 
+
 ; Burst mode
 .equ DMA_CH_BURSTLEN_1BYTE_gc, (0x00<<0) ; 1-byte burst mode
 .equ DMA_CH_BURSTLEN_2BYTE_gc, (0x01<<0) ; 2-byte burst mode
@@ -2486,7 +2490,7 @@
 
 ; EVSYS_CH7CTRL masks
 ; Masks for DIGFILT aready defined
- 
+
 ; Quadrature Decoder Index Recognition Mode
 .equ EVSYS_QDIRM_00_gc, (0x00<<5) ; QDPH0, 0, QDPH90, 0
 .equ EVSYS_QDIRM_01_gc, (0x01<<5) ; QDPH0, 0, QDPH90, 1
@@ -2824,7 +2828,7 @@
 .equ NVM_FUSES_BODLVL1_bp, 1 ; Brown Out Detection Voltage Level bit 1 position
 .equ NVM_FUSES_BODLVL2_bm, (1<<2) ; Brown Out Detection Voltage Level bit 2 mask
 .equ NVM_FUSES_BODLVL2_bp, 2 ; Brown Out Detection Voltage Level bit 2 position
- 
+
 ; NVM Command
 .equ NVM_CMD_NO_OPERATION_gc, (0x00<<0) ; Noop/Ordinary LPM
 .equ NVM_CMD_READ_CALIB_ROW_gc, (0x02<<0) ; Read calibration row
@@ -3042,7 +3046,7 @@
 .equ AC_AC1IF_bp, 1 ; Analog Comparator 1 Interrupt Flag bit position
 .equ AC_AC0IF_bm, 0x01 ; Analog Comparator 0 Interrupt Flag bit mask
 .equ AC_AC0IF_bp, 0 ; Analog Comparator 0 Interrupt Flag bit position
- 
+
 ; Interrupt mode
 .equ AC_INTMODE_BOTHEDGES_gc, (0x00<<6) ; Interrupt on both edges
 .equ AC_INTMODE_FALLING_gc, (0x02<<6) ; Interrupt on falling edge
@@ -3252,7 +3256,7 @@
 .equ ADC_CH1IF_bp, 1 ; Channel 1 Interrupt Flag bit position
 .equ ADC_CH0IF_bm, 0x01 ; Channel 0 Interrupt Flag bit mask
 .equ ADC_CH0IF_bp, 0 ; Channel 0 Interrupt Flag bit position
- 
+
 ; Positive input multiplexer selection
 .equ ADC_CH_MUXPOS_PIN0_gc, (0x00<<3) ; Input pin 0
 .equ ADC_CH_MUXPOS_PIN1_gc, (0x01<<3) ; Input pin 1
@@ -3463,13 +3467,13 @@
 .equ DAC_OFFSETCAL5_bp, 5 ; Offset Calibration bit 5 position
 .equ DAC_OFFSETCAL6_bm, (1<<6) ; Offset Calibration bit 6 mask
 .equ DAC_OFFSETCAL6_bp, 6 ; Offset Calibration bit 6 position
- 
+
 ; Output channel selection
 .equ DAC_CHSEL_SINGLE_gc, (0x00<<5) ; Single channel operation (Channel A only)
 .equ DAC_CHSEL_DUAL_gc, (0x02<<5) ; Dual channel operation (S/H on both channels)
 
 ; Reference voltage selection
-.equ DAC_REFSEL_INT1V_gc, (0x00<<3) ; Internal 1V 
+.equ DAC_REFSEL_INT1V_gc, (0x00<<3) ; Internal 1V
 .equ DAC_REFSEL_AVCC_gc, (0x01<<3) ; Analog supply voltage
 .equ DAC_REFSEL_AREFA_gc, (0x02<<3) ; External reference on AREF on PORTA
 .equ DAC_REFSEL_AREFB_gc, (0x03<<3) ; External reference on AREF on PORTB
@@ -3548,7 +3552,7 @@
 .equ RTC_COMPIF_bp, 1 ; Compare Match Interrupt Flag bit position
 .equ RTC_OVFIF_bm, 0x01 ; Overflow Interrupt Flag bit mask
 .equ RTC_OVFIF_bp, 0 ; Overflow Interrupt Flag bit position
- 
+
 ; Prescaler Factor
 .equ RTC_PRESCALER_OFF_gc, (0x00<<0) ; RTC Off
 .equ RTC_PRESCALER_DIV1_gc, (0x01<<0) ; RTC Clock
@@ -3701,7 +3705,7 @@
 .equ EBI_ROWCOLDLY1_bp, 1 ; SDRAM Row-to-Column Delay bit 1 position
 .equ EBI_ROWCOLDLY2_bm, (1<<2) ; SDRAM Row-to-Column Delay bit 2 mask
 .equ EBI_ROWCOLDLY2_bp, 2 ; SDRAM Row-to-Column Delay bit 2 position
- 
+
 ; Chip Select adress space
 .equ EBI_CS_ASPACE_256B_gc, (0x00<<2) ; 256 bytes
 .equ EBI_CS_ASPACE_512B_gc, (0x01<<2) ; 512 bytes
@@ -3741,27 +3745,27 @@
 .equ EBI_CS_SDMODE_NORMAL_gc, (0x00<<0) ; Normal mode
 .equ EBI_CS_SDMODE_LOAD_gc, (0x01<<0) ; Load Mode Register command mode
 
-; 
+;
 .equ EBI_SDDATAW_4BIT_gc, (0x00<<6) ; 4-bit data bus
 .equ EBI_SDDATAW_8BIT_gc, (0x01<<6) ; 8-bit data bus
 
-; 
+;
 .equ EBI_LPCMODE_ALE1_gc, (0x00<<4) ; Data muxed with addr byte 0
 .equ EBI_LPCMODE_ALE12_gc, (0x02<<4) ; Data muxed with addr byte 0 and 1
 
-; 
+;
 .equ EBI_SRMODE_ALE1_gc, (0x00<<2) ; Addr byte 0 muxed with 1
 .equ EBI_SRMODE_ALE2_gc, (0x01<<2) ; Addr byte 0 muxed with 2
 .equ EBI_SRMODE_ALE12_gc, (0x02<<2) ; Addr byte 0 muxed with 1 and 2
 .equ EBI_SRMODE_NOALE_gc, (0x03<<2) ; No addr muxing
 
-; 
+;
 .equ EBI_IFMODE_DISABLED_gc, (0x00<<0) ; EBI Disabled
 .equ EBI_IFMODE_3PORT_gc, (0x01<<0) ; 3-port mode
 .equ EBI_IFMODE_4PORT_gc, (0x02<<0) ; 4-port mode
 .equ EBI_IFMODE_2PORT_gc, (0x03<<0) ; 2-port mode
 
-; 
+;
 .equ EBI_SDCOL_8BIT_gc, (0x00<<0) ; 8 column bits
 .equ EBI_SDCOL_9BIT_gc, (0x01<<0) ; 9 column bits
 .equ EBI_SDCOL_10BIT_gc, (0x02<<0) ; 10 column bits
@@ -3953,7 +3957,7 @@
 .equ TWI_SDAHOLD_bp, 1 ; SDA Hold Time Enable bit position
 .equ TWI_EDIEN_bm, 0x01 ; External Driver Interface Enable bit mask
 .equ TWI_EDIEN_bp, 0 ; External Driver Interface Enable bit position
- 
+
 ; Master Interrupt Level
 .equ TWI_MASTER_INTLVL_OFF_gc, (0x00<<6) ; Interrupt Disabled
 .equ TWI_MASTER_INTLVL_LO_gc, (0x01<<6) ; Low Level
@@ -4141,7 +4145,7 @@
 ; Masks for INVEN aready defined
 ; Masks for OPC aready defined
 ; Masks for ISC aready defined
- 
+
 ; Virtual Port 0 Mapping
 .equ PORTCFG_VP0MAP_PORTA_gc, (0x00<<0) ; Mapped To PORTA
 .equ PORTCFG_VP0MAP_PORTB_gc, (0x01<<0) ; Mapped To PORTB
@@ -4583,7 +4587,7 @@
 .equ HIRES_HREN0_bp, 0 ; High Resolution Enable bit 0 position
 .equ HIRES_HREN1_bm, (1<<1) ; High Resolution Enable bit 1 mask
 .equ HIRES_HREN1_bp, 1 ; High Resolution Enable bit 1 position
- 
+
 ; Clock Selection
 .equ TC_CLKSEL_OFF_gc, (0x00<<0) ; Timer Off
 .equ TC_CLKSEL_DIV1_gc, (0x01<<0) ; System Clock
@@ -4792,7 +4796,7 @@
 .equ USART_BSCALE3_bm, (1<<7) ; Baud Rate Scale bit 3 mask
 .equ USART_BSCALE3_bp, 7 ; Baud Rate Scale bit 3 position
 ; Masks for BSEL aready defined
- 
+
 ; Receive Complete Interrupt level
 .equ USART_RXCINTLVL_OFF_gc, (0x00<<4) ; Interrupt Disabled
 .equ USART_RXCINTLVL_LO_gc, (0x01<<4) ; Low Level
@@ -4869,7 +4873,7 @@
 .equ SPI_IF_bp, 7 ; Interrupt Flag bit position
 .equ SPI_WRCOL_bm, 0x40 ; Write Collision bit mask
 .equ SPI_WRCOL_bp, 6 ; Write Collision bit position
- 
+
 ; SPI Mode
 .equ SPI_MODE_0_gc, (0x00<<2) ; SPI Mode 0
 .equ SPI_MODE_1_gc, (0x01<<2) ; SPI Mode 1
@@ -4904,7 +4908,7 @@
 .equ IRCOM_EVSEL2_bp, 2 ; Event Channel Select bit 2 position
 .equ IRCOM_EVSEL3_bm, (1<<3) ; Event Channel Select bit 3 mask
 .equ IRCOM_EVSEL3_bp, 3 ; Event Channel Select bit 3 position
- 
+
 ; Event channel selection
 .equ IRDA_EVSEL_OFF_gc, (0x00<<0) ; No Event Source
 .equ IRDA_EVSEL_0_gc, (0x08<<0) ; Event Channel 0
@@ -4946,7 +4950,7 @@
 .equ AES_INTLVL0_bp, 0 ; Interrupt level bit 0 position
 .equ AES_INTLVL1_bm, (1<<1) ; Interrupt level bit 1 mask
 .equ AES_INTLVL1_bp, 1 ; Interrupt level bit 1 position
- 
+
 ; Interrupt level
 .equ AES_INTLVL_OFF_gc, (0x00<<0) ; Interrupt Disabled
 .equ AES_INTLVL_LO_gc, (0x01<<0) ; Low Level

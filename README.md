@@ -1,14 +1,14 @@
 # FIT_PM_FW_uPC
 
 ## Firmware timestamp & version
-The build timestamp (32-bit) is located at the very end of the application code (e.g.: 0x2b7c), not far from the " Flash TImestamp:" string.  
-The timestamp can be easily translated to firmware version YMD.Hm using the following rule:  
+The build timestamp (32-bit) is located at the very end of the application code (e.g.: 0x2b7c), not far from the " Flash TImestamp:" string.
+The timestamp can be easily translated to firmware version YMD.Hm using the following rule:
 - Y: years, counting from 2020, so 2021 is 1,
 - M: month
 - D: day
 - H: hour
-- m: minutes  
-All the values are coded using the following alphabet:  
+- m: minutes
+All the values are coded using the following alphabet:
 > 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvw
 
 ---
@@ -22,12 +22,12 @@ THS788 initial settings are stored in EEPROM 0x1018 to 0x1023
 3. Check for DLL LOCK status for every channel (CH.A-D)
 
 #### FPGA startup
-FPGA status is stored at 0x215b with starting value equal zero.  
+FPGA status is stored at 0x215b with starting value equal zero.
 1. If 5V is present (DA21_RST_N), then enable (DA11_EN->DA7_RUN, DA4_EN, DA13_EN) 1x LM21215AMHX-1, 2x LM21212MH-1, 1x LD49150PT10R, 1x LD49150PT12R, delay 2s.
 2. Check whether .. ok, ...
 3. Setup clock generator & FPGA:
     1. Send 0x00001808 (Register 8: Status/Control -> bit7 set [Normal Mode], bit8 set [exit Synchronization State]) to CDCE62005RGZT
-    2. Set FPGA init pin (FPGA_INIT_B), clear then set FPGA program pin (FPGA_PROGRAM_B), delay 2,5s.	
+    2. Set FPGA init pin (FPGA_INIT_B), clear then set FPGA program pin (FPGA_PROGRAM_B), delay 2,5s.
 4. Wait for FPGA done pin (FPGA_DONE_B) then:
     1. Set 0x2157 4-th bit
     2. Set FPGA reg 0x80 to 0xAF -> EEPROM values (0x6C - 0xCA / 0x21cf - 0x222e)
@@ -44,13 +44,13 @@ FPGA status is stored at 0x215b with starting value equal zero.
 
 
 ---
-## Hardware 
+## Hardware
 Some details about the peripherals the MCU ATxmega128a3 is communicating with.
 
 | PIN 	| LABEL 	| PORT	| MODE			| PERIPHERAL 	|
-|:---:	|:---:  	|:---:	| :---:			|:---:        	
-|63  	|DA27_SCLK	|PA1 	| SPI CLK		|**ADT7311WTRZ Temperature Sensor**| 
-|64	|DA27_DOUT	|PA2 	| SPI MISO		|		| 
+|:---:	|:---:  	|:---:	| :---:			|:---:
+|63  	|DA27_SCLK	|PA1 	| SPI CLK		|**ADT7311WTRZ Temperature Sensor**|
+|64	|DA27_DOUT	|PA2 	| SPI MISO		|		|
 |1	|DA27_DIN	|PA3  	| SPI MOSI		| 		|
 |2	|DA27_CS	|PA4	| SPI CS		| 		|
 |62	|		|PA0 	| OUT LED VD8 (red)	|**LEDS**	|
@@ -61,7 +61,7 @@ Some details about the peripherals the MCU ATxmega128a3 is communicating with.
 |7	|HDATA		|PB1	| IN/OUT		|		|
 |8	|HSTROBE1	|PB2	| OUT CS		|		|
 |9	|HSTROBE2	|PB3	| OUT CS		|		|
-|10	|HSTROBE3	|PB4	| OUT CS		|		|		
+|10	|HSTROBE3	|PB4	| OUT CS		|		|
 |11	|THS788_RESET	|PB5	| OUT RST		|		|
 |12	|THS788_OT_ALARM|PB6	| INT0 (overtemperature alarm)	|	|
 |16	|DAC_SYNC_A	|PC0	| OUT SYNC1..4		|**DAC8554IPW (x12)**|
@@ -88,7 +88,7 @@ Some details about the peripherals the MCU ATxmega128a3 is communicating with.
 |37	|DA21_RST_N	|PE1	| INT (nrst)		|**LTC2906ITS8**|
 |38	|DD11A_A	|PE2	| OUT (enable)		|**Voltage enable**	|
 |39	|DA7_PGOOD	|PE3	| IN  (outa & outb)	|**Voltage monitor** 	|
-|40	|DD9_S  	|PE4	| SPI CS		|**N25Q032A11EF840 Serial Flash Memory**| 
+|40	|DD9_S  	|PE4	| SPI CS		|**N25Q032A11EF840 Serial Flash Memory**|
 |41	|DD9_DQ0	|PE5	| SPI MOSI		|		|
 |42	|DD9_DQ1	|PE6	| SPI MISO		|		|
 |43	|DD9_C		|PE7	| SPI CLK		|		|
@@ -96,12 +96,12 @@ Some details about the peripherals the MCU ATxmega128a3 is communicating with.
 |47	|DD7_R2OUT	|PF1	| UART RTS (INT0)	|		|
 |48	|DD7_R1OUT	|PF2	| UART Rx 		|		|
 |49	|DD7_T1IN	|PF3	| UART Tx		|		|
-|55	|NC		|PF7	| ---		
+|55	|NC		|PF7	| ---
 
 ---
 ## Memory layout
-0x1000 - 0x1023 : EEPROM, configuration. Copied at boot to: 0x2189 - 0x21ad  
-  
+0x1000 - 0x1023 : EEPROM, configuration. Copied at boot to: 0x2189 - 0x21ad
+
 | MEM 	| EEPROM| Bytes | Value 		|
 | :--- 	| :---	| :---	| :---			|
 | 0x2000|	| 2	| USART_F0 rx buffer head & tail pointers	|
@@ -117,8 +117,8 @@ Some details about the peripherals the MCU ATxmega128a3 is communicating with.
 | 0x2158| 	| 1	| FPGA 0x7F status 	|
 | 0x2159| 	| 1	| Timer THS788 status 	|
 | 0x215a| 	| 1	| Timer THS788 value	|
-| 0x215b| 	| 1	| Timer FPGA status	| 
-| 0x215c| 	| 2	| Timer FPGA value 	| 
+| 0x215b| 	| 1	| Timer FPGA status	|
+| 0x215c| 	| 2	| Timer FPGA value 	|
 | 0x215e|	| 2	| Timer 		|
 | 0x2160| 	| 2 	| #16#BC reg Board Temperature		|
 | 0x2162| 	| 1 	| clock source settings |
@@ -143,12 +143,12 @@ Some details about the peripherals the MCU ATxmega128a3 is communicating with.
 | ...	|	|	|	|
 | 0x3ffd| 	| 1	| Program status 	|
 
----  
+---
 ## UART F0 commands
 | CMD 		| DESC 		|
 |:---: 		|:---  		|
-| CA\r		| Clear alarms|
-| CP\r		| Clear params |
+| CA		| Clear alarms|
+| CP		| Clear params |
 | ON or OF	| EEPROM erase? |
 | PA		| Flash ATxmega with new firmware |
 | PC		| Flash default CDCE62005 settings|
@@ -160,7 +160,7 @@ Some details about the peripherals the MCU ATxmega128a3 is communicating with.
 | RT		| Read FPGA TDC phase auto fine tuning result (0x3E-0x3F) & CH TDC raw data (0x40-0x4B) |
 | RZ		| Read FPGA ADC baseline (0x0D-0x24) & dispersion (0x4C-0x63) |
 | SCL		| Set threshold calibration (0xB0-0xBB)|
-| SCS		| ???|
+| SCS [0:11] [-64:63] | Set positive edge sync and positive edge hit calibration
 | SCT		| Set TDC values (0x01-0x0C) |
 | SCR		| Set ADC range correction (0x25-0x3C)|
 | SD		| Set CH ADC Delay |
@@ -174,37 +174,37 @@ Some details about the peripherals the MCU ATxmega128a3 is communicating with.
 
 ### Sample responses
 #### RC
-CH:    0 Lcal: 2190 TDC:     0 Time shift:   979 Range corr: 2048  2048  
-CH:    1 Lcal: 2240 TDC:     0 Time shift:   958 Range corr: 2048  2048  
-CH:    2 Lcal: 2520 TDC:     0 Time shift:   930 Range corr: 2048  2048  
-CH:    3 Lcal: 2420 TDC:     0 Time shift:   932 Range corr: 2048  2048  
-CH:    4 Lcal: 2500 TDC:     0 Time shift:   980 Range corr: 2048  2048  
-CH:    5 Lcal: 2365 TDC:     0 Time shift:  1022 Range corr: 2048  2048  
-CH:    6 Lcal: 2780 TDC:     0 Time shift:   915 Range corr: 2048  2048  
-CH:    7 Lcal: 2420 TDC:     0 Time shift:  1021 Range corr: 2048  2048  
-CH:    8 Lcal: 2225 TDC:     0 Time shift:  1020 Range corr: 2048  2048  
-CH:    9 Lcal: 2490 TDC:     0 Time shift:  1048 Range corr: 2048  2048  
-CH:   10 Lcal: 2190 TDC:     0 Time shift:   969 Range corr: 2048  2048  
-CH:   11 Lcal: 2300 TDC:     0 Time shift:   968 Range corr: 2048  2048  
+CH:    0 Lcal: 2190 TDC:     0 Time shift:   979 Range corr: 2048  2048
+CH:    1 Lcal: 2240 TDC:     0 Time shift:   958 Range corr: 2048  2048
+CH:    2 Lcal: 2520 TDC:     0 Time shift:   930 Range corr: 2048  2048
+CH:    3 Lcal: 2420 TDC:     0 Time shift:   932 Range corr: 2048  2048
+CH:    4 Lcal: 2500 TDC:     0 Time shift:   980 Range corr: 2048  2048
+CH:    5 Lcal: 2365 TDC:     0 Time shift:  1022 Range corr: 2048  2048
+CH:    6 Lcal: 2780 TDC:     0 Time shift:   915 Range corr: 2048  2048
+CH:    7 Lcal: 2420 TDC:     0 Time shift:  1021 Range corr: 2048  2048
+CH:    8 Lcal: 2225 TDC:     0 Time shift:  1020 Range corr: 2048  2048
+CH:    9 Lcal: 2490 TDC:     0 Time shift:  1048 Range corr: 2048  2048
+CH:   10 Lcal: 2190 TDC:     0 Time shift:   969 Range corr: 2048  2048
+CH:   11 Lcal: 2300 TDC:     0 Time shift:   968 Range corr: 2048  2048
 
 #### RF
-CH:    0 Treshold:   3.00 Shift:   3.25 Zero offs:   3.82 Delay 10.260  
-CH:    1 Treshold:   3.00 Shift:   2.65 Zero offs:   2.42 Delay  9.387  
-CH:    2 Treshold:   3.00 Shift:   3.00 Zero offs:   3.23 Delay  9.298  
-CH:    3 Treshold:   3.00 Shift:   3.05 Zero offs:   1.54 Delay  9.998  
-CH:    4 Treshold:   5.00 Shift:   3.20 Zero offs:   3.91 Delay 10.765  
-CH:    5 Treshold:   3.00 Shift:   2.30 Zero offs:   2.06 Delay  9.425  
-CH:    6 Treshold:   3.00 Shift:  -0.15 Zero offs:   3.81 Delay 10.025  
-CH:    7 Treshold:   3.00 Shift:   0.70 Zero offs:   3.17 Delay 10.682  
-CH:    8 Treshold:   3.00 Shift:  -0.30 Zero offs:   3.85 Delay 10.432  
-CH:    9 Treshold:   3.00 Shift:  -0.50 Zero offs:   1.84 Delay 11.462  
-CH:   10 Treshold:   3.00 Shift:   0.30 Zero offs:   1.59 Delay  9.807  
-CH:   11 Treshold:   3.00 Shift:   0.30 Zero offs:   2.23 Delay  9.714  
-Trigger window:  153  
-CFD sat. level: 4095  
+CH:    0 Treshold:   3.00 Shift:   3.25 Zero offs:   3.82 Delay 10.260
+CH:    1 Treshold:   3.00 Shift:   2.65 Zero offs:   2.42 Delay  9.387
+CH:    2 Treshold:   3.00 Shift:   3.00 Zero offs:   3.23 Delay  9.298
+CH:    3 Treshold:   3.00 Shift:   3.05 Zero offs:   1.54 Delay  9.998
+CH:    4 Treshold:   5.00 Shift:   3.20 Zero offs:   3.91 Delay 10.765
+CH:    5 Treshold:   3.00 Shift:   2.30 Zero offs:   2.06 Delay  9.425
+CH:    6 Treshold:   3.00 Shift:  -0.15 Zero offs:   3.81 Delay 10.025
+CH:    7 Treshold:   3.00 Shift:   0.70 Zero offs:   3.17 Delay 10.682
+CH:    8 Treshold:   3.00 Shift:  -0.30 Zero offs:   3.85 Delay 10.432
+CH:    9 Treshold:   3.00 Shift:  -0.50 Zero offs:   1.84 Delay 11.462
+CH:   10 Treshold:   3.00 Shift:   0.30 Zero offs:   1.59 Delay  9.807
+CH:   11 Treshold:   3.00 Shift:   0.30 Zero offs:   2.23 Delay  9.714
+Trigger window:  153
+CFD sat. level: 4095
 
 #### RS
-Board S/N: 1803 Flash Timestamp: 852AD92B  
-External power source: OK  
-Temperature    24.7 NORMAL  
-Board power OFF  
+Board S/N: 1803 Flash Timestamp: 852AD92B
+External power source: OK
+Temperature    24.7 NORMAL
+Board power OFF

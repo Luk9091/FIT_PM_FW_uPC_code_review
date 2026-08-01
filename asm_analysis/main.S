@@ -61,8 +61,8 @@
 
 #define CFD_THRESHOLD_LIMIT_MAX             30000
 #define CFD_THRESHOLD_LIMIT_MIN               300
-#define CFD_OFFSET_LIMIT_MAX                  500
-#define CFD_OFFSET_LIMIT_MIN                 -500
+#define CFD_ZERO_LIMIT_MAX                  500
+#define CFD_ZERO_LIMIT_MIN                 -500
 #define ADC_ZERO_LIMIT_MAX                    500
 #define ADC_ZERO_LIMIT_MIN                   -500
 #define ADC_DELAY_LIMIT_MAX                 20000
@@ -1142,13 +1142,13 @@ DAC_set_all_parameters:
     ldi         YH,hi8(DAC_PARAMETER_ADDRESS)
 LAB_code_000500:                                                ; for (int i = 0; i < 12; i++){
     ld          R20,Y+                                          ;   DAC_set_value_CFD_threshold(address = i, value = DAC_PARAMS[i])
-    ld          R21,Y+                                          ;   DAC_set_value_CFD_offset(address = i, value = DAC_PARAMS[i])
+    ld          R21,Y+                                          ;   DAC_set_value_CFD_zero(address = i, value = DAC_PARAMS[i])
     mov         R22,R23                                         ;   DAC_set_value_ADC_zero(address = i, value = DAC_PARAMS[i])
     call        DAC_set_value_CFD_threshold                     ;   DAC_set_value_ADC_delay(address = i, value = DAC_PARAMS[i])
     ld          R20,Y+                                          ; }
     ld          R21,Y+                                          ;
     mov         R22,R23                                         ;
-    call        DAC_set_value_CFD_offset                        ; undefined3 FUN_code_001076(void)
+    call        DAC_set_value_CFD_zero                        ; undefined3 FUN_code_001076(void)
     ld          R20,Y+                                          ;
     ld          R21,Y+                                          ;
     mov         R22,R23                                         ;
@@ -1180,11 +1180,11 @@ LAB_code_000500:                                                ; for (int i = 0
 ;************************************************************************************************
 ;undefined FUN_code_000526(void)
 .org (0x0526 << 1)
-PORTD_INT0_vect_isr:    ; fpga_done
+PORTD_INT0_vect_isr:                                ; fpga_done
     push        ZH
     in          ZH,CPU_SREG
     push        R16
-    lds         R16,PORTD_IN                    ;= ??
+    lds         R16,PORTD_IN                        ;= ??
     bst         R16,0x3
     cli
     lds         R16,POWER_ERROR_CODE                   ;= ??
@@ -1666,7 +1666,7 @@ PORTF_INT0_vect_isr:
     ld          R17,-Z                          ; R17 = *(0x2003)
     ld          R16,-Z                          ; R16 = *(0x2002)
     cp          R16,R17
-    brbs        CPU_Z_bp, LAB_code_000739
+    brbs        CPU_Z_bp, LAB_code_000739       ; if (*0x2003 == *0x2004) jump
     lds         R18,USARTF0_STATUS              ;= ??
     sbrs        R18,0x5
     rjmp        LAB_code_000734
@@ -2169,20 +2169,20 @@ LAB_code_0008ec:
 LAB_code_0008f5:
     cpi         R19,0x1
     brbc        CPU_Z_bp, LAB_code_000915
-    ldi         R24,hi8(CFD_OFFSET_LIMIT_MAX + 1)
-    cpi         R16,lo8(CFD_OFFSET_LIMIT_MAX + 1)
+    ldi         R24,hi8(CFD_ZERO_LIMIT_MAX + 1)
+    cpi         R16,lo8(CFD_ZERO_LIMIT_MAX + 1)
     cpc         R17,R24
     brbc        CPU_S_bp,LAB_code_000902
-    ldi         R24,hi8(CFD_OFFSET_LIMIT_MIN)
-    cpi         R16,lo8(CFD_OFFSET_LIMIT_MIN)
+    ldi         R24,hi8(CFD_ZERO_LIMIT_MIN)
+    cpi         R16,lo8(CFD_ZERO_LIMIT_MIN)
     cpc         R17,R24
     brbc        CPU_S_bp,LAB_code_00090c
-    ldi         R16,lo8(CFD_OFFSET_LIMIT_MIN)
-    ldi         R17,hi8(CFD_OFFSET_LIMIT_MIN)
+    ldi         R16,lo8(CFD_ZERO_LIMIT_MIN)
+    ldi         R17,hi8(CFD_ZERO_LIMIT_MIN)
     rjmp        LAB_code_000904
 LAB_code_000902:
-    ldi         R16,lo8(CFD_OFFSET_LIMIT_MAX)
-    ldi         R17,hi8(CFD_OFFSET_LIMIT_MAX)
+    ldi         R16,lo8(CFD_ZERO_LIMIT_MAX)
+    ldi         R17,hi8(CFD_ZERO_LIMIT_MAX)
 LAB_code_000904:
     cli
     lds         R20,PORTE_INTCTRL               ;= ??
@@ -2198,7 +2198,7 @@ LAB_code_00090c:
     andi        R22,0x3f
     lsr         R22
     lsr         R22
-    rcall       DAC_set_value_CFD_offset                         ;undefined3 FUN_code_001076(void)
+    rcall       DAC_set_value_CFD_zero                         ;undefined3 FUN_code_001076(void)
     rjmp        FPGA_DAC_DATA_EXCHANGE_continue
 LAB_code_000915:
     cpi         R19,0x2
@@ -3529,12 +3529,12 @@ SYSTEM_STATUS_SEND_CLOCK_OK:                                ; }
     lds         R20,LAST_RESET_REASON_ADDRESS               ; Last reset reson
     add         R20,R20
     ldi         ZL,0xa8
-    ldi         ZH,0x2b                                     ;
-    eor         R21,R21                                     ; Note unknown
+    ldi         ZH,0x2b                                     ; Store Z array: 0xB0, 0x2B, 0xC4, 0x2B, 0xBA, 0x2B, 0xD0
+    eor         R21,R21                                     ;
     add         ZL,R20                                      ;
     adc         ZH,R21                                      ;
-    lpm         R20,Z+                                      ;
-    lpm         R21,Z                                       ;
+    lpm         R20,Z+                                      ; R20 = Z[LAST_RESET_REASON_ADDRESS]
+    lpm         R21,Z                                       ; R21 = Z[LAST_RESET_REASON_ADDRESS+1]
     movw        Z,R20                                       ;
     rcall       cli_send_msg                                ;undefined FUN_code_001413(void)
     ldi         ZL,0x84
@@ -3570,7 +3570,7 @@ SYSTEM_STATUS_RETURN_2:
 ;undefined FUN_code_000df2(void)
 .org (0x0df2 << 1)
 alarms_clear:
-    rcall       cli_get_next_char                         ;undefined FUN_code_00141e(void)
+    rcall       cli_get_next_char                               ;undefined FUN_code_00141e(void)
     cpi         R16,'\r'
     brbc        CPU_Z_bp, RETURN_WITH_SYNTAX_ERROR_MSG_8
     cli
@@ -4260,7 +4260,7 @@ LAB_code_00103f:
     adc         YH,R11
     st          Y+,R20
     st          Y,R21
-    rcall       DAC_set_value_CFD_offset                         ;undefined3 FUN_code_001076(void)
+    rcall       DAC_set_value_CFD_zero                         ;undefined3 FUN_code_001076(void)
     rjmp        RETURN_WITH_OK_MSG_1
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
@@ -4329,7 +4329,7 @@ DAC_set_value_ADC_delay:
 ; R20, R21 - data
 ; R22 -- device address
 ; R24 -- sync channel address
-DAC_set_value_CFD_offset:
+DAC_set_value_CFD_zero:
     push        R18
     ldi         R18,0x88                                ; decimal value / 256
     ldi         R19,0x41                                ; integer value
@@ -5815,11 +5815,14 @@ cli_send_buf_return:
     .org (0x15cb << 1)  ; Flash address: 0x2B96
     .string         "Last reset from "
 
-    .org (0x15d4 << 1)  ; Flash address: 0x2BA8
-    .byte             0xB0, 0x2B, 0xC4, 0x2B, 0xBA, 0x2B, 0xD0
+    .org (0x15d4 << 1)  ; Flash address: 0x2BA8 -- Reason to reset msg
+    .byte             0xB0, 0x2B,       ; Reason to reset -> "Power on"
+    .byte             0xC4, 0x2B,       ; Reason to reset -> "PLL lock"
+    .byte             0xBA, 0x2B,       ; Reason to reset -> "FPGA reload"
+    .byte             0xD0, 0x2B        ; Reason to reset -> "SPI command"
 
-    .org ((0x15d7 << 1) + 1)    ; Flash address: 0x2BAF
-    .string         "+Power on"
+    .org (0x15d8 << 1)    ; Flash address: 0x2BB0
+    .string         "Power on"
 
     .org (0x15dd << 1)  ; Flash address: 0x2BBA
     .string         "PLL lock"

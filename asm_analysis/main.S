@@ -9,10 +9,11 @@
 #define SERIAL_RECV_MSG_LEN 0x2005
 #define FPGA_COMMUNICATION_FLAG 0x2006 // WIP
 
-#define SEND_MESSAGE_SIZE   0x2003
-#define SEND_BUFFER_SIZE    0x2004
+#define SEND_CURRENT_CHAR_INDEX     0x2002
+#define SEND_MESSAGE_SIZE           0x2003
+#define SEND_BUFFER_CAPACITY            0x2004
+#define SEND_BUFFER_ADDRESS         0x2047
 ; *SEND_BUFFER_SIZE = 63
-#define SEND_CURRENT_CHAR_INDEX   0x2002
 ; char SEND_buffer[SEND_BUFFER_SIZE]; // First address 0x2047
 
 #define RECV_BUFFER_SIZE 63
@@ -20,17 +21,19 @@
 ; uint8_t RECV_CURRENT_CHAR_INDEX = *(0x2001)
 ; uint8_t RECV_MESSAGE_SIZE = *(0x2000)
 
-#define POWER_ERROR_CODE        0x2157
-#define POWER_ERROR_OK          1 << 0
+#define POWER_ERROR_CODE                0x2157
+#define POWER_ERROR_OK                  1 << 0
 ; Temperature code in POWER_ERROR_CODE
 #define TEMPERATURE_ERROR_CODE_MASK     0x06
-#define TEMPERATURE_NORMAL      0x00 & TEMPERATURE_ERROR_CODE_MASK
-#define TEMPERATURE_CRITICAL    0x06 & TEMPERATURE_ERROR_CODE_MASK
-#define TEMPERATURE_HIGH        0x04 & TEMPERATURE_ERROR_CODE_MASK
-#define TEMPERATURE_LOW         0x02 & TEMPERATURE_ERROR_CODE_MASK
-#define POWER_ERROR_BOARD_POWER 1<<3
-#define POWER_ERROR_FPGA_READY  1<<4
-#define POWER_ERROR_TDC_OVERHEATED 1<<6
+#define TEMPERATURE_NORMAL              0x00 & TEMPERATURE_ERROR_CODE_MASK
+#define TEMPERATURE_CRITICAL            0x06 & TEMPERATURE_ERROR_CODE_MASK
+#define TEMPERATURE_HIGH                0x04 & TEMPERATURE_ERROR_CODE_MASK
+#define TEMPERATURE_LOW                 0x02 & TEMPERATURE_ERROR_CODE_MASK
+#define POWER_ERROR_BOARD_POWER         1 << 3
+#define POWER_ERROR_FPGA_READY          1 << 4
+#define POWER_ERROR_THS_OVERHEATED      1 << 5                      ; // Probably
+#define POWER_ERROR_TDC_OVERHEATED      1 << 6
+#define POWER_ERROR_TDC_SYNC            1 << 7
 
 ; // Parameters:  Threshold, Shift, Zero offs, Delay
 ; float CHANNEL_PARAMETERS[CHANNEL_NUMBER][PARAMETER_NUMBER];
@@ -70,6 +73,14 @@
 
 ; Data at address: 0x2158, 0x2159 were cleared after reset
 
+; Unknown register description:
+;   0x2158: Bits    | Description
+;           0       | GBT link status
+;           1       | RX error
+;           2       | TDC1 sync error
+;           3       | TDC2 sync error
+;           4       | TDC3 sync error
+
 ; Probalby
 #define FPGA_STATUS_ADDRESS             0x215B
 
@@ -81,6 +92,13 @@
 
 #define FLASH_TIMESTAMP_ADDRESS         0x2B92
 #define LAST_RESET_REASON_ADDRESS       0x2441
+
+
+#define TDC_TIME_ALIGMENT_ADDRESS       0x21B7
+#define ADC_RANGE_CORRECTION_ADDRESS    0x2187
+#define THRESHOLD_CALIBRATION_ADDRESS   0x2163
+#define THRESHOLD_CALIBRATION_FPGA_ADDRESS 0xB0
+#define LAST_RESET_REASON_FPGA_ADDRESS  0xBE
 
 .section .text
 
@@ -99,6 +117,7 @@
 
 .org (PORTB_INT0_vect << 1)
     rjmp     PORTB_INT0_vect_isr            ; 34 PORTB External Interrupt 0
+                                            ; overtemperature alarm, active when temperature achieved at least 141C
 
 .org (PORTE_INT0_vect << 1)
     rjmp     PORTE_INT0_vect_isr            ; 43 PORTE External Interrupt 0
@@ -1006,64 +1025,72 @@ fpga_settings_init:
     push        R16
     push        YH
     push        ZL
-    ldi         R18,0x7c                                ; PM Memory address:
-    eor         R16,R16
-    eor         R17,R17
-    cli
-    call        fpga_msg_send_t2                         ;undefined FUN_code_001187(void)
+
+    ldi         R18,CHANNEL_MASK_FPGA_ADDRESS
+    eor         R16,R16                                     ;
+    eor         R17,R17                                     ;
+    cli                                                     ; Disable all channel in PM
+    call        fpga_msg_send_t2                            ;undefined FUN_code_001187(void)
     bset        CPU_I_bp
-    lds         R16,TRIGGER_WINDOW
-    eor         R17,R17
-    eor         R18,R18
-    cli
-    call        fpga_msg_send_t2                         ;undefined FUN_code_001187(void)
+
+    lds         R16,TRIGGER_WINDOW                          ;
+    eor         R17,R17                                     ;
+    eor         R18,R18                                     ; PM Memory address: TRG settings
+    cli                                                     ; Preset trigger settings
+    call        fpga_msg_send_t2                            ;undefined FUN_code_001187(void)
     bset        CPU_I_bp
-    ldi         YL,0xb7
-    ldi         YH,0x21
-LAB_code_000488:
+
+    ldi         YL,lo8(TDC_TIME_ALIGMENT_ADDRESS)
+    ldi         YH,hi8(TDC_TIME_ALIGMENT_ADDRESS)
+FPGA_SETTINGS_INIT_time_aligment_loop:
     ld          R16,Y+
-    ld          R17,Y+
-    inc         R18     ;
-    cli
-    call        fpga_msg_send_t2                         ;undefined FUN_code_001187(void)
+    ld          R17,Y+                                      ; Channel TDC time aligment, read form EEPROM???
+    inc         R18                                         ;
+    cli                                                     ;
+    call        fpga_msg_send_t2                            ;undefined FUN_code_001187(void)
     bset        CPU_I_bp
-    cpi         R18,0xc
-    brbc        CPU_Z_bp, LAB_code_000488
+    cpi         R18, 12
+    brbc        CPU_Z_bp, FPGA_SETTINGS_INIT_time_aligment_loop
+
     ldi         R18,0x24
-    ldi         YL,0x87
-    ldi         YH,0x21
-LAB_code_000494:
+    ldi         YL,lo8(ADC_RANGE_CORRECTION_ADDRESS)
+    ldi         YH,hi8(ADC_RANGE_CORRECTION_ADDRESS)
+FPGA_SETTINGS_INIT_adc_range_correction_loop:
     ld          R16,Y+
     ld          R17,Y+
-    inc         R18
+    inc         R18                                         ; ADC range correction, read from EEPROM???
     cli
-    call        fpga_msg_send_t2                         ;undefined FUN_code_001187(void)
+    call        fpga_msg_send_t2                            ;undefined FUN_code_001187(void)
     bset        CPU_I_bp
-    cpi         R18,60
-    brbc        CPU_Z_bp, LAB_code_000494   ; if (R18 != 60) loop
-    inc         R18                         ; R18 = 61
+    cpi         R18,60                                      ; if (R18 != 60) loop
+    brbc        CPU_Z_bp, FPGA_SETTINGS_INIT_adc_range_correction_loop
+
+    inc         R18                                         ; CFD Charge levels (CFD saturation)
     lds         R16,CFD_SAT_LVL_LOW
     lds         R17,CFD_SAT_LVL_HIGH
     cli
-    call        fpga_msg_send_t2                         ;undefined FUN_code_001187(void)
+    call        fpga_msg_send_t2                            ;undefined FUN_code_001187(void)
     bset        CPU_I_bp
-    lds         R16,BOARD_TEMPERATURE_LOW                   ;= ??
-    lds         R17,BOARD_TEMPERATURE_HIGH                   ;= ??
+
+    lds         R16,BOARD_TEMPERATURE_LOW
+    lds         R17,BOARD_TEMPERATURE_HIGH
     ldi         R18,BOARD_TEMPERATURE_FPGA_ADDRESS
     cli
-    call        fpga_msg_send_t2                         ;undefined FUN_code_001187(void)
+    call        fpga_msg_send_t2                            ;undefined FUN_code_001187(void)
     bset        CPU_I_bp
-    lds         R16,BOARD_ID_LOW                   ;= ??
-    lds         R17,BOARD_ID_HIGH                   ;= ??
+
+    lds         R16,BOARD_ID_LOW
+    lds         R17,BOARD_ID_HIGH
     ldi         R18,BOARD_ID_FPGA_ADDRESS
     cli
-    call        fpga_msg_send_t2                         ;undefined FUN_code_001187(void)
+    call        fpga_msg_send_t2                            ;undefined FUN_code_001187(void)
     bset        CPU_I_bp
+
     ldi         R18,CHANNEL_MASK_FPGA_ADDRESS
     ser         R16
-    ldi         R17,0xf
-    cli
-    call        fpga_msg_send_t2                         ;undefined FUN_code_001187(void)
+    ldi         R17,0xf                                     ; R17:16 = 0x0FF'FF
+    cli                                                     ; Enable all channels PM
+    call        fpga_msg_send_t2                            ;undefined FUN_code_001187(void)
     bset        CPU_I_bp
     pop         ZL
     pop         YH
@@ -1085,29 +1112,31 @@ fpga_settings_reset:
     ldi         R18,DAC_PARAMETER_FPGA_ADDRESS
     ldi         YL,lo8(DAC_PARAMETER_ADDRESS)
     ldi         YH,hi8(DAC_PARAMETER_ADDRESS)
-LAB_code_0004cd:
+FPGA_SETTINGS_RESET_dac_parameter_loop:
     ld          R16,Y+
     ld          R17,Y+
     cli
     call        fpga_msg_send_t2                         ;undefined FUN_code_001187(void)
     bset        CPU_I_bp
     inc         R18
-    cpi         R18,0xb0
-    brbc        CPU_Z_bp, LAB_code_0004cd
-    ldi         YL,0x63
-    ldi         YH,0x21
-LAB_code_0004d8:
+    cpi         R18,(DAC_PARAMETER_FPGA_ADDRESS + 48)
+    brbc        CPU_Z_bp, FPGA_SETTINGS_RESET_dac_parameter_loop
+
+    ldi         YL,lo8(THRESHOLD_CALIBRATION_ADDRESS)
+    ldi         YH,hi8(THRESHOLD_CALIBRATION_ADDRESS)
+FPGA_SETTINGS_RESET_set_cfd_threshold_calibration_loop:
     ld          R16,Y+
     ld          R17,Y+
     cli
     call        fpga_msg_send_t2                         ;undefined FUN_code_001187(void)
     bset        CPU_I_bp
     inc         R18
-    cpi         R18,0xbc
-    brbc        CPU_Z_bp, LAB_code_0004d8
-    lds         R16,LAST_RESET_REASON_ADDRESS                   ;= ??
+    cpi         R18,(THRESHOLD_CALIBRATION_FPGA_ADDRESS + 12)
+    brbc        CPU_Z_bp, FPGA_SETTINGS_RESET_set_cfd_threshold_calibration_loop
+
+    lds         R16,LAST_RESET_REASON_ADDRESS
     eor         R17,R17
-    ldi         R18,0xbe
+    ldi         R18,LAST_RESET_REASON_FPGA_ADDRESS
     cli
     call        fpga_msg_send_t2                         ;undefined FUN_code_001187(void)
     bset        CPU_I_bp
@@ -1142,13 +1171,13 @@ DAC_set_all_parameters:
     ldi         YH,hi8(DAC_PARAMETER_ADDRESS)
 LAB_code_000500:                                                ; for (int i = 0; i < 12; i++){
     ld          R20,Y+                                          ;   DAC_set_value_CFD_threshold(address = i, value = DAC_PARAMS[i])
-    ld          R21,Y+                                          ;   DAC_set_value_CFD_zero(address = i, value = DAC_PARAMS[i])
-    mov         R22,R23                                         ;   DAC_set_value_ADC_zero(address = i, value = DAC_PARAMS[i])
-    call        DAC_set_value_CFD_threshold                     ;   DAC_set_value_ADC_delay(address = i, value = DAC_PARAMS[i])
+    ld          R21,Y+                                          ;   DAC_set_value_CFD_zero(address = i, value = DAC_PARAMS[i+1])
+    mov         R22,R23                                         ;   DAC_set_value_ADC_zero(address = i, value = DAC_PARAMS[i+2])
+    call        DAC_set_value_CFD_threshold                     ;   DAC_set_value_ADC_delay(address = i, value = DAC_PARAMS[i+3])
     ld          R20,Y+                                          ; }
     ld          R21,Y+                                          ;
     mov         R22,R23                                         ;
-    call        DAC_set_value_CFD_zero                        ; undefined3 FUN_code_001076(void)
+    call        DAC_set_value_CFD_zero                          ; undefined3 FUN_code_001076(void)
     ld          R20,Y+                                          ;
     ld          R21,Y+                                          ;
     mov         R22,R23                                         ;
@@ -1239,17 +1268,18 @@ LAB_code_00055a:
 ;************************************************************************************************
 ;undefined FUN_code_00055e(void)
 .org (0x055e << 1)
-PORTB_INT0_vect_isr:        ; ths788_ot_alarm
+PORTB_INT0_vect_isr:                        ; ths788_ot_alarm
+                                            ; Active low
     push        ZH
     in          ZH,CPU_SREG
     push        R16
-    lds         R16,POWER_ERROR_CODE                   ;= ??
-    ori         R16,0x60
-    sts         POWER_ERROR_CODE,R16                   ;= ??
+    lds         R16,POWER_ERROR_CODE
+    ori         R16,POWER_ERROR_TDC_OVERHEATED | POWER_ERROR_THS_OVERHEATED
+    sts         POWER_ERROR_CODE,R16
     ldi         R16,0x40
-    sts         PORTA_OUTCLR,R16                ;= ??
+    sts         PORTA_OUTCLR,R16            ; Turn on LED_CLK_ERR
     ldi         R16,0x4
-    sts         PORTE_OUTCLR,R16                ;= ??
+    sts         PORTE_OUTCLR,R16            ; Disable power from FPGA
     pop         R16
     out         CPU_SREG,ZH
     pop         ZH
@@ -1341,16 +1371,16 @@ FPGA_THSs_reset_loop:
     eor         R16,R16                         ;
     sts         0x2158,R16                      ;= ??
     sts         0x2159,R16                      ;= ??
-    lds         R16,POWER_ERROR_CODE                      ; Mask DIODE ???
+    lds         R16,POWER_ERROR_CODE            ; Mask DIODE ???
     andi        R16,0x7f
-    sts         POWER_ERROR_CODE,R16                      ;
+    sts         POWER_ERROR_CODE,R16            ;
     ret
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
 ;undefined FUN_code_0005cb(void)
 .org (0x05cb << 1)
-PORTE_INT0_vect_isr:        ; ps_change_detected
+PORTE_INT0_vect_isr:                            ; ps_change_detected
     push        ZH
     in          ZH,CPU_SREG
     cli
@@ -1364,13 +1394,13 @@ PORTE_INT0_vect_isr:        ; ps_change_detected
     bst         R16,0x3                         ;
     bld         R17,0x3                         ; R17 = R17 | P1V2LDO_PGood << 3
     bst         R16,0x2                         ; T = EN_PSU
-    lds         R16,POWER_NOK_bm                ;
+    lds         R16,POWER_ERROR_CODE            ;
     mov         R18,R16
     andi        R16,0xf6                        ;
     or          R16,R17                         ; R16 = (R16 & 0xF6) |  P1V2LDO_PGood << 3 | IN_PWR_OK << 0
     sts         POWER_ERROR_CODE,R16                      ;
     eor         R18,R17                         ;
-    sbrs        R18,0x0                         ;   if (POWER_NOK_bm ^ (IN_PWR_OK) == 0)
+    sbrs        R18,0x0                         ;   if (POWER_ERROR_CODE ^ (IN_PWR_OK) == 0)
     rjmp        LAB_code_0005f6                 ;       jmp
     sbrc        R17,0x0
     rjmp        LAB_code_0005eb                 ; if (IN_PWR_OK == 0) {
@@ -1425,37 +1455,39 @@ LAB_code_00060f:
 ;************************************************************************************************
 ;undefined FUN_code_000615()
 .org (0x0615 << 1)
-PORTE_INT1_vect_isr:           ; fpga_comm_request
+; TODO
+PORTE_INT1_vect_isr:            ; fpga_comm_request
+                                ; Interrupt request on IRQ pin from FPGA
     push        R31
-    in          R31,CPU_SREG    ; copy SREG
+    in          R31,CPU_SREG                    ; copy SREG
     push        R16
     push        R17
     push        R18
-    ldi         R18,0x7f
-    call        fpga_msg_read_t1                         ;undefined FUN_code_0011b4(undefined2...
-    sbrs        R17,0x1
-    rjmp        LAB_code_000624
-    lds         R18,0x2006               ;= ??
-    ori         R18,0x1
-    sts         0x2006,R18
-LAB_code_000624:
+    ldi         R18,0x7f                        ; read status FPGA status register
+    call        fpga_msg_read_t1                ;undefined FUN_code_0011b4(undefined2...
+    sbrs        R17,0x1                         ;
+    rjmp        LAB_code_000624                 ; if (FPGA TDC3 sync error == 1) { // FIX: I dont know what happen, because it has no sense.
+    lds         R18,0x2006                      ;= ??
+    ori         R18,0x1                         ;
+    sts         0x2006,R18                      ;   *0x2006 |= 0x01;
+LAB_code_000624:                                ; }
     swap        R16
     andi        R16,0xf
     swap        R17
     andi        R17,0x10
-    or          R17,R16
-    lds         R16,0x2158               ;= ??
+    or          R17,R16                         ; R17 = TDC3 sync error | TDC2 sync error  | TDC1 sync error | GBT rec error | GBT rec ready
+    lds         R16,0x2158                      ;= ??
     andi        R16,0xfe
     or          R16,R17
     sts         0x2158,R16
-    andi        R17,0x1c
-    brbs        CPU_Z_bp, LAB_code_000639
-    lds         R16,POWER_ERROR_CODE               ;= ??
-    ori         R16,0x80
-    sts         POWER_ERROR_CODE,R16
-    ldi         R16,0x40
-    sts         PORTA_OUTCLR,R16
-LAB_code_000639:
+    andi        R17,0x1c                        ; R17 = TDC3 sync error | TDC2 sync error  | TDC1 sync error
+    brbs        CPU_Z_bp, LAB_code_000639       ; if (TDC sync error) {
+    lds         R16,POWER_ERROR_CODE            ;
+    ori         R16,0x80                        ;
+    sts         POWER_ERROR_CODE,R16            ;
+    ldi         R16,0x40                        ;
+    sts         PORTA_OUTCLR,R16                ;   Turn on LED module ready
+LAB_code_000639:                                ; }
     pop         R18
     pop         R17
     pop         R16
@@ -1486,42 +1518,42 @@ LAB_code_000646:                                                ; } else {
 .org (0x064b << 1)
 system_deinit:
     eor         R16,R16
-    sts         0x215C,R16                   ;= ??
-    sts         0x215D,R16                   ;= ??
-    sts         0x215B,R16                   ;= ??
-    sts         0x2159,R16                   ;= ??
-    sts         LAST_RESET_REASON_ADDRESS,R16                   ;= ??
-    sts         0x2006,R16                   ;= ??
-    sts         PLL_STATUS_ADDRESS,R16                   ;= ??
+    sts         0x215C,R16                                  ;= ??
+    sts         0x215D,R16                                  ;= ??
+    sts         0x215B,R16                                  ;= ??
+    sts         0x2159,R16                                  ;= ??
+    sts         LAST_RESET_REASON_ADDRESS,R16               ; LAST_RESET_REASON = 0;
+    sts         0x2006,R16                                  ;= ??
+    sts         PLL_STATUS_ADDRESS,R16                      ; PLL_STATUS = 0;
     ldi         R16,0x1
-    sts         PORTE_INTCTRL,R16               ;= ??
+    sts         PORTE_INTCTRL,R16                           ; Low level interrupt 0 PORT E
     ldi         R16,0x2
-    sts         PORTF_INTCTRL,R16               ;= ??
+    sts         PORTF_INTCTRL,R16                           ; Med level interrupt 0 PORT F
     ldi         R16,0x0
-    sts         PORTB_INTCTRL,R16               ;= ??
-    sts         PORTD_INTCTRL,R16               ;= ??
+    sts         PORTB_INTCTRL,R16                           ; Disable interrupt PORT B
+    sts         PORTD_INTCTRL,R16                           ; Disable interrupt PORT D
     ldi         R16,0xbf
-    sts         PORTB_DIRCLR,R16                ;= ??
+    sts         PORTB_DIRCLR,R16                            ; Set PORT B to input
     eor         R16,R16
-    sts         SPIC_CTRL,R16                        ;= ??
+    sts         SPIC_CTRL,R16                               ; Disable SPIC
     ser         R16
-    sts         PORTC_DIRCLR,R16                ;= ??
+    sts         PORTC_DIRCLR,R16                            ; Set PORT C to input
     ldi         R16,0x41
-    sts         PORTD_DIRCLR,R16                ;= ??
+    sts         PORTD_DIRCLR,R16                            ; Set PORT D to input
     ldi         R16,0x4
-    sts         PORTD_OUTCLR,R16                ;= ??
+    sts         PORTD_OUTCLR,R16                            ; Disable last state clock (force to Hi-Z)
     ldi         R16,0x20
-    sts         PORTF_OUTCLR,R16                ;= ??
+    sts         PORTF_OUTCLR,R16                            ; Disable PLL sync
     ldi         R16,0x20
-    sts         PORTF_DIRCLR,R16                ;= ??
-    lds         R16,POWER_ERROR_CODE                   ;= ??
-    andi        R16,0xef
-    sts         POWER_ERROR_CODE,R16                   ;= ??
+    sts         PORTF_DIRCLR,R16                            ; Set PLL to input
+    lds         R16,POWER_ERROR_CODE                        ;
+    andi        R16,0xef                                    ; Clear POWER_ERROR_TDC_SYNC in POWER_ERROR_CODE
+    sts         POWER_ERROR_CODE,R16                        ;
     ldi         R16,0xa0
-    sts         PORTA_OUTSET,R16                ;= ??
+    sts         PORTA_OUTSET,R16                            ; disable CLK IN LED and MODULE READY LED
     eor         R16,R16
-    sts         SPID_CTRL,R16                        ;= ??
-    sts         DMA_CTRL,R16                         ;= ??
+    sts         SPID_CTRL,R16                               ; Disable SPID
+    sts         DMA_CTRL,R16                                ; Disable DMA Controller
     ret
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
@@ -1669,19 +1701,19 @@ PORTF_INT0_vect_isr:
     brbs        CPU_Z_bp, LAB_code_000739       ; if (*0x2003 == *0x2004) jump
     lds         R18,USARTF0_STATUS              ;= ??
     sbrs        R18,0x5
-    rjmp        LAB_code_000734
+    rjmp        PORTF_INT0_empty_usartf_data_reg
     eor         R17,R17
     inc         R16
-    ldi         ZL,0x47
-    ldi         ZH,0x20
+    ldi         ZL,lo8(SEND_BUFFER_ADDRESS)
+    ldi         ZH,hi8(SEND_BUFFER_ADDRESS)
     add         ZL,R16
     adc         ZH,R17
     ld          R17,Z
-    sts         USARTF0_DATA,R17                     ;= ??
-    ldi         ZL,0x02
-    ldi         ZH,0x20                         ; Z = 0x2002
+    sts         USARTF0_DATA,R17                ;= ??
+    ldi         ZL,lo8(SEND_CURRENT_CHAR_INDEX)
+    ldi         ZH,hi8(SEND_CURRENT_CHAR_INDEX) ; Z = 0x2002
     st          Z,R16                           ;
-LAB_code_000734:
+PORTF_INT0_empty_usartf_data_reg:
     lds         R18,USARTF0_CTRLA               ;= ??
     ori         R18,0x2
     sts         USARTF0_CTRLA,R18               ;= ??
@@ -1732,33 +1764,33 @@ USARTF0_DRE_vect_isr:
     push        R18
     push        R17
     push        R16
-    ldi         ZL,0x2
-    ldi         ZH,0x20                     ; Z = 0x2002
-    ld          R16,Z+                      ; R16 = *(0x2002), Z++
-    ld          R17,Z+                      ; R17 = *(0x2003), Z++
-    ld          R18,Z                       ; R18 = *(0x2004)
+    ldi         ZL,lo8(SEND_CURRENT_CHAR_INDEX)
+    ldi         ZH,hi8(SEND_CURRENT_CHAR_INDEX)     ; Z = 0x2002
+    ld          R16,Z+                              ; R16 = *(0x2002), Z++
+    ld          R17,Z+                              ; R17 = *(0x2003), Z++
+    ld          R18,Z                               ; R18 = *(0x2004)
     and         R18,R18
-    brbs        CPU_Z_bp, LAB_code_000755   ; if (
-    cp          R16,R17                     ;       *(0x2004) == 0
-    brbc        CPU_Z_bp, LAB_code_00075b   ;   ||  *(0x2002) == *(0x2003)
-LAB_code_000755:                            ; ) {
-    lds         R19,USARTF0_CTRLA           ; Disable interrupts from DRE
-    andi        R19,0xfc                    ;
-    sts         USARTF0_CTRLA,R19           ;
-    rjmp        LAB_code_000767             ; return
-LAB_code_00075b:                            ; }
-    inc         R16                         ; R16++
-    eor         R17,R17                     ; R17 = 0
-    ldi         ZL,0x47
-    ldi         ZH,0x20                     ; Z = 0x2047
-    add         ZL,R16                      ; Z += R16
+    brbs        CPU_Z_bp, LAB_code_000755           ; if (
+    cp          R16,R17                             ;       *(0x2004) == 0
+    brbc        CPU_Z_bp, LAB_code_00075b           ;   ||  *(0x2002) == *(0x2003)
+LAB_code_000755:                                    ; ) {
+    lds         R19,USARTF0_CTRLA                   ; Disable interrupts from DRE
+    andi        R19,0xfc                            ;
+    sts         USARTF0_CTRLA,R19                   ;
+    rjmp        USARTF_DRE_return                   ; return
+LAB_code_00075b:                                    ; }
+    inc         R16                                 ; R16++
+    eor         R17,R17                             ; R17 = 0
+    ldi         ZL,lo8(SEND_BUFFER_ADDRESS)
+    ldi         ZH,hi8(SEND_BUFFER_ADDRESS)         ; Z = 0x2047
+    add         ZL,R16                              ; Z += R16
     adc         ZH,R17
-    ld          R17,Z                       ; R17 = char
-    sts         USARTF0_DATA,R17            ; Send char from 0x2047
-    ldi         ZL,0x2
-    ldi         ZH,0x20                     ; Z = 0x2002
-    st          Z,R16                       ; *0x2002 = R16
-LAB_code_000767:
+    ld          R17,Z                               ; R17 = char
+    sts         USARTF0_DATA,R17                    ; Send char from 0x2047
+    ldi         ZL,lo8(SEND_CURRENT_CHAR_INDEX)
+    ldi         ZH,hi8(SEND_CURRENT_CHAR_INDEX)     ; Z = 0x2002
+    st          Z,R16                               ; *0x2002 = R16
+USARTF_DRE_return:
     pop         R16
     pop         R17
     pop         R18
@@ -1969,6 +2001,7 @@ wait_unitl_pll_run:                             ; while (OSC_STATUS & (1 << 4)) 
     sts         USARTF0_CTRLB,R16               ; Enable Rx and Tx pin
     ldi         R16,0x20
     sts         USARTF0_CTRLA,R16               ; Medium level Rx interrupt
+                                                ; Note Rewrote in C -------------------------------------------
 
     ; Timer configuration
     ; Timer 0 set to tick at 1kHz
@@ -1984,11 +2017,13 @@ wait_unitl_pll_run:                             ; while (OSC_STATUS & (1 << 4)) 
     sts         TCC0_CTRLE,R16                  ; Single 16 bit timer at normal mode WARNING: No make sens
     ldi         R16,0x1
     sts         TCC0_INTCTRLA,R16               ; Low level interrupt
+                                                ; Note Rewrote in C -------------------------------------------
 
     ; EEPROM controller
     ldi         R16,0x8
     sts         NVM_CTRLB,R16                   ; Enable EEPROM
     eor         R25,R25                         ; R25 = 0
+                                                ; Note Rewrote in C -------------------------------------------
 
     ; Probably compiler code
     ldi         ZL,0x0
@@ -2658,7 +2693,6 @@ RETURN_WITH_SYNTAX_ERROR_MSG_4:
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
 ;undefined FUN_code_000ad3(void)
-; TODO: here
 .org (0x0ad3 << 1)
 fpga_firmware_update:
     rcall       unlock_programming                          ; check programming key
@@ -2675,33 +2709,33 @@ fpga_firmware_update:
     st          X,R16                                       ; *(0x2438) = 0
     rcall       flash_chip_get_RDID
     eor         R17,R17
-    call        cli_send_32bit_hex                          ; Send: 0x00(MEMORY CAPACITY)
+    call        cli_send_16bit_hex                          ; Send: 0x00(MEMORY CAPACITY)
     movw        R16,R18
-    call        cli_send_32bit_hex                          ; Send: 0x00(manufacturer ID)
+    call        cli_send_16bit_hex                          ; Send: 0x00(manufacturer ID)
     call        cli_send_newline
 
     call        cli_get_next_byte                           ;undefined FUN_code_00141b(void)
     mov         YL,R16
-    call        cli_get_next_byte                         ;undefined FUN_code_00141b(void)
+    call        cli_get_next_byte                           ;undefined FUN_code_00141b(void)
     mov         YH,R16
-    call        cli_get_next_byte                         ;undefined FUN_code_00141b(void)
+    call        cli_get_next_byte                           ;undefined FUN_code_00141b(void)
     mov         ZL,R16
-    call        cli_get_next_byte                         ;undefined FUN_code_00141b(void)
+    call        cli_get_next_byte                           ;undefined FUN_code_00141b(void)
     mov         R0,R16
-    call        cli_get_next_byte                         ;undefined FUN_code_00141b(void)
+    call        cli_get_next_byte                           ;undefined FUN_code_00141b(void)
     mov         R1,R16
-    call        cli_get_next_byte                         ;undefined FUN_code_00141b(void)
+    call        cli_get_next_byte                           ;undefined FUN_code_00141b(void)
     mov         R2,R16
     movw        R20,Y
     mov         R22,ZL
 LAB_code_000afd:
-    rcall       FPGA_FLASH_block_erase                         ;undefined FUN_code_000b88(void)
+    rcall       FPGA_FLASH_block_erase                      ;undefined FUN_code_000b88(void)
 LAB_code_000afe:
     mov         R17,R0
     mov         R18,R1
     mov         R19,R2
     ldi         R16,0x1
-    call        cli_send_buf                         ;undefined FUN_code_001456(void)
+    call        cli_send_buf                                ;undefined FUN_code_001456(void)
     sub         R17,R20
     sbc         R18,R21
     sbc         R19,R22
@@ -2712,8 +2746,8 @@ LAB_code_000afe:
     brbs        CPU_Z_bp, LAB_code_000b0d
     eor         R17,R17
 LAB_code_000b0d:
-    lds         R24,0x2435                   ;= ??
-    lds         R25,0x2436                   ;= ??
+    lds         R24,0x2435                                  ;= ??
+    lds         R25,0x2436                                  ;= ??
 LAB_code_000b11:
     ldi         XL,0x35
     ldi         XH,0x22
@@ -2737,9 +2771,9 @@ LAB_code_000b11:
 LAB_code_000b27:
     rcall       FPGA_FLASH_wait_until_finish_write                         ;undefined FUN_code_000b9d(void)
     rcall       FPGA_FLASH_check_crc32_from_to                         ;undefined FUN_code_000bb9(undefined2...
-    call        cli_send_32bit_hex                         ;undefined FUN_code_00137c(void)
+    call        cli_send_16bit_hex                         ;undefined FUN_code_00137c(void)
     movw        R16,R18
-    call        cli_send_32bit_hex                         ;undefined FUN_code_00137c(void)
+    call        cli_send_16bit_hex                         ;undefined FUN_code_00137c(void)
     call        cli_send_newline                         ;undefined FUN_code_00140f(void)
     rcall       FUN_code_000b3f                         ;undefined FUN_code_000b3f(void)
     rjmp        RETURN_WITH_OK_MSG_1
@@ -3210,7 +3244,7 @@ LAB_code_000cac:
     cli
     rcall       fpga_msg_read_t1                         ;undefined FUN_code_0011b4(undefined2...
     bset        CPU_I_bp
-    rcall       cli_send_32bit_hex                         ;undefined FUN_code_00137c(void)
+    rcall       cli_send_16bit_hex                         ;undefined FUN_code_00137c(void)
     cpi         R16,0x60
     brbs        CPU_S_bp,LAB_code_000cb7
     sbrs        R17,0x0
@@ -3376,7 +3410,7 @@ cli_send_system_status:
     rcall       cli_send_msg                                ;undefined FUN_code_001413(void)
     lds         R16,BOARD_ID_LOW                            ;= ??
     lds         R17,BOARD_ID_HIGH                           ;= ??
-    rcall       cli_send_32bit_hex                          ;undefined FUN_code_00137c(void)
+    rcall       cli_send_16bit_hex                          ;undefined FUN_code_00137c(void)
     ldi         ZL,0x7e
     ldi         ZH,0x2b                                     ; Send: "Flash timestamp:"
     rcall       cli_send_msg                                ;undefined FUN_code_001413(void)
@@ -3386,9 +3420,9 @@ cli_send_system_status:
     lpm         R19,Z+
     lpm         R16,Z+
     lpm         R17,Z+
-    rcall       cli_send_32bit_hex                          ;undefined FUN_code_00137c(void)
+    rcall       cli_send_16bit_hex                          ;undefined FUN_code_00137c(void)
     movw        R16,R18
-    rcall       cli_send_32bit_hex                          ;undefined FUN_code_00137c(void)
+    rcall       cli_send_16bit_hex                          ;undefined FUN_code_00137c(void)
     ldi         ZL,0xa6
     ldi         ZH,0x29                                     ; send: "External power source: "
     rcall       cli_send_msg                                ;undefined FUN_code_001413(void)
@@ -3528,23 +3562,23 @@ SYSTEM_STATUS_SEND_CLOCK_OK:                                ; }
     rcall       cli_send_msg                                ;undefined FUN_code_001413(void)
     lds         R20,LAST_RESET_REASON_ADDRESS               ; Last reset reson
     add         R20,R20
-    ldi         ZL,0xa8
-    ldi         ZH,0x2b                                     ; Store Z array: 0xB0, 0x2B, 0xC4, 0x2B, 0xBA, 0x2B, 0xD0
+    ldi         ZL,0xa8                                     ; Store Z array index to string reset reason message
+    ldi         ZH,0x2b                                     ; Store Z array: 0xB0, 0x2B, 0xC4, 0x2B, 0xBA, 0x2B, 0xD0, 0x2B
     eor         R21,R21                                     ;
     add         ZL,R20                                      ;
     adc         ZH,R21                                      ;
     lpm         R20,Z+                                      ; R20 = Z[LAST_RESET_REASON_ADDRESS]
     lpm         R21,Z                                       ; R21 = Z[LAST_RESET_REASON_ADDRESS+1]
-    movw        Z,R20                                       ;
+    movw        Z,R20                                       ; Send: Last message about reason to last reset
     rcall       cli_send_msg                                ;undefined FUN_code_001413(void)
     ldi         ZL,0x84
-    ldi         ZH,0x29                                     ;
+    ldi         ZH,0x29                                     ; Send: "dy\r\n"
     rcall       cli_send_msg                                ;undefined FUN_code_001413(void)
     lds         R20,0x2158                                  ;= ??
     ldi         ZL,0x44
     ldi         ZH,0x2b                                     ; Send: "GBT link "
     rcall       cli_send_msg                                ;undefined FUN_code_001413(void)
-    ldi         ZL,0x2
+    ldi         ZL,0x02
     ldi         ZH,0x2a                                     ; Send: "OFF"
     sbrc        R20,0x0                                     ; 0x2158 bit 0 -> GBT link status
     rjmp        SYSTEM_STATUS_SEND_GBT_ON
@@ -3642,8 +3676,8 @@ LAB_code_000e36:
     eor         R17,R17                                 ; Send: 0x00 00
     rcall       cli_send_uint16                         ;undefined FUN_code_0013a7(void)
     rcall       cli_send_msg                            ;undefined FUN_code_001413(void)
-    ldi         YL,0x63
-    ldi         YH,0x21
+    ldi         YL,lo8(CFD_THRESHOLD_OFFSET_ARRAY)
+    ldi         YH,hi8(CFD_THRESHOLD_OFFSET_ARRAY)
     mov         R22,R20
     add         R22,R22
     add         YL,R22
@@ -4369,7 +4403,7 @@ DAC_set_value_ADC_zero:
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
 ; int check_fpga_ready(){
-;   if (POWER_NOK_bm && (1 << 4)){
+;   if (POWER_ERROR_CODE && (1 << 4)){
 ;       return 0;
 ;   }
 ;
@@ -4379,7 +4413,7 @@ DAC_set_value_ADC_zero:
 .org (0x108e << 1)
 check_fpga_is_ready:
     clc
-    lds         R16,POWER_ERROR_CODE                ; if (POWER_NOK_bm && (1 << 4)) {
+    lds         R16,POWER_ERROR_CODE                ; if (POWER_ERROR_CODE && (1 << 4)) {
     sbrc        R16, 4                              ;   return;
     ret                                             ; }
     ldi         ZL,0xb4
@@ -4734,10 +4768,8 @@ FPGA_MSG_write_wait_until_spi_4:
 ;************************************************************************************************
 ;undefined FUN_code_0011b4()
 ; FPGA_msg_read_from_address
-; @in R18   -- address high
-; @in R21   -- address low
-; @out R17  -- data high
-; @out R16  -- data low
+; @in R18           -- address
+; @out R17:R16      -- data
 .org (0x11b4 << 1)
 fpga_msg_read_t1:
     push        R18
@@ -4763,18 +4795,21 @@ FPGA_MSG_read_wait_until_spi_2:
     lds         R22,SPIC_STATUS
     sbrs        R22,0x7
     rjmp        FPGA_MSG_read_wait_until_spi_2
+
     sts         SPIC_DATA,R17
 FPGA_MSG_read_wait_until_spi_3:
     lds         R22,SPIC_STATUS
     sbrs        R22,0x7
     rjmp        FPGA_MSG_read_wait_until_spi_3
-    lds         R17,SPIC_DATA
-    sts         SPIC_DATA,R16           ; Read data from SPI
+    lds         R17,SPIC_DATA           ; Read data from SPI
+
+    sts         SPIC_DATA,R16
 FPGA_MSG_read_wait_until_spi_4:
     lds         R22,SPIC_STATUS
     sbrs        R22,0x7
     rjmp        FPGA_MSG_read_wait_until_spi_4
     lds         R16,SPIC_DATA           ; Read data from SPI
+
     ldi         R22,0x1
     sts         PORTD_OUTSET,R22        ; Disable CS at FPGA SPI
     pop         R22
@@ -5267,7 +5302,7 @@ LAB_code_001379:
 ; Parameters:
 ;   in R17 -- MSB value
 ;   in R16 -- LSB value
-cli_send_32bit_hex:
+cli_send_16bit_hex:
     push        R16
     push        R17
     push        R18
@@ -5602,8 +5637,8 @@ cli_send_buf:
     push        R19
     push        R18
     push        R17
-    ldi         ZL,0x02
-    ldi         ZH,0x20
+    ldi         ZL,lo8(SEND_CURRENT_CHAR_INDEX)
+    ldi         ZH,hi8(SEND_CURRENT_CHAR_INDEX)
 LAB_code_00145e:
     cli
     ld          R17,Z+                      ; R17 = SEND_CURRENT_CHAR_INDEX (0x2002)
@@ -5617,8 +5652,8 @@ LAB_code_00145e:
     sbiw        Z,0x2                       ; Z = Z - 2 = 0x2002
     rjmp        LAB_code_00145e
 CLI_SEND_BUF_add_char_to_buffer:
-    ldi         ZL,0x47
-    ldi         ZH,0x20                     ; Z = SEND_buffer[] // Z = 0x2047
+    ldi         ZL,lo8(SEND_BUFFER_ADDRESS)
+    ldi         ZH,hi8(SEND_BUFFER_ADDRESS) ; Z = SEND_buffer[] // Z = 0x2047
     eor         R17,R17                     ; R17 = 0
     add         ZL,R18                      ;
     adc         ZH,R17                      ; Z = SEND_buffer + SEND_CURRENT_CHAR_INDEX
@@ -5639,7 +5674,7 @@ CLI_SEND_BUFFER_full_buffer:
     sts         USARTF0_DATA,R16                ; Send char
     lds         R20,USARTF0_CTRLA               ;
     ori         R20,0x2                         ;
-    sts         USARTF0_CTRLA,R20               ; USARTF_CTRLA |= 0x02 enable irq from USART
+    sts         USARTF0_CTRLA,R20               ; USARTF_CTRLA |= 0x02 enable irq from USART level: MED
     bset        CPU_I_bp
 cli_send_buf_return:
     pop         R17
@@ -5816,9 +5851,9 @@ cli_send_buf_return:
     .string         "Last reset from "
 
     .org (0x15d4 << 1)  ; Flash address: 0x2BA8 -- Reason to reset msg
-    .byte             0xB0, 0x2B,       ; Reason to reset -> "Power on"
-    .byte             0xC4, 0x2B,       ; Reason to reset -> "PLL lock"
-    .byte             0xBA, 0x2B,       ; Reason to reset -> "FPGA reload"
+    .byte             0xB0, 0x2B        ; Reason to reset -> "Power on"
+    .byte             0xC4, 0x2B        ; Reason to reset -> "PLL lock"
+    .byte             0xBA, 0x2B        ; Reason to reset -> "FPGA reload"
     .byte             0xD0, 0x2B        ; Reason to reset -> "SPI command"
 
     .org (0x15d8 << 1)    ; Flash address: 0x2BB0

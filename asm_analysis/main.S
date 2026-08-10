@@ -111,9 +111,11 @@
 
 .org (DMA_CH1_vect << 1)
     rjmp     DMA_CH1_vect_isr               ; 7 Channel 1 Interrupt
+                                            ; (Transfer data between uC and FPGA FLASH)
 
 .org (TCC0_OVF_vect << 1)
     rjmp    TCC0_OVF_vect_isr               ; 14 Overflow Interrupt
+                                            ; (Update data every 1ms)
 
 .org (PORTB_INT0_vect << 1)
     rjmp     PORTB_INT0_vect_isr            ; 34 PORTB External Interrupt 0

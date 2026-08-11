@@ -2656,8 +2656,8 @@ CLI_cmd_PA:
     sts         CPU_CCP,R17                     ;= ??
     sts         NVM_CTRLA,R16                   ;= ??
     bset        CPU_I_bp
-    ret                                         ; FIX: Byte error
-    ;jmp         FUN_code_010184                ; undefined FUN_code_010184(void)
+	; After upload new firmware jump to bootloader
+    jmp         0x010184 << 1
 
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *

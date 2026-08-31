@@ -1,0 +1,71 @@
+TARGET := "main"
+MODULE := "PM"
+
+CC      :="avr-gcc"
+MMCU    :="atxmega128a3u"
+OBJ     :="avr-objcopy"
+F_CPU   :="32000000UL"
+
+FILES   := "\
+    main.c \
+    system_config/drivers/clksys_driver.c \
+    system_config/config.c \
+ \
+    Log/log.c \
+    CircularBuffer/circularBuffer.c \
+ \
+    LEDs/leds.c \
+    USART/usart.c \
+"
+#     UnitTest/usart.c \
+# \
+#     system_config/drivers/usart_driver.c \
+# \
+# \
+#     PowerStatus/powerStatus.c \
+#     dac/dac.c \
+#     spi/spi.c \
+#     ths788/ths788.c \
+# "
+
+INCLUDES:= " \
+    -I . \
+    -I system_config/drivers \
+    -I system_config \
+ \
+    -I Log \
+    -I CircularBuffer \
+ \
+    -I LEDs \
+    -I USART \
+"
+#     -I UnitTest \
+# \
+# \
+# \
+#     -I PowerStatus \
+#     -I dac \
+#     -I spi \
+#     -I ths788 \
+# "
+
+default: build
+
+build:
+    @mkdir -p build
+    {{CC}} -mmcu={{MMCU}} -o build/{{MODULE}}.elf {{FILES}} {{INCLUDES}} -DF_CPU={{F_CPU}} -Os --debug -DDEBUG
+
+no_debug:
+    @mkdir -p build
+    {{CC}} -mmcu={{MMCU}} -o build/RELEASE.elf {{FILES}} {{INCLUDES}} -DF_CPU={{F_CPU}} -Os
+    {{OBJ}} -O binary -R .eeprom build/RELEASE.elf build/RELEASE.bin
+
+
+
+
+bear:
+    @mkdir -p build
+    bear --output build/compile_commands.json -- just build
+
+clean:
+    rm -r build

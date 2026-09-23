@@ -9,6 +9,7 @@ typedef struct{
     uint8_t tail;
     const uint8_t size;
     char * const data;
+    uint8_t capacity;
 } CircularBuffer_t;
 
 static inline bool CircularBuffer_isFull(CircularBuffer_t *buffer){
@@ -18,24 +19,26 @@ static inline bool CircularBuffer_isEmpty(CircularBuffer_t *buffer){
     return buffer->head == buffer->tail;
 }
 
-static inline int CircularBuffer_push(CircularBuffer_t *buffer, char c){
-    if (CircularBuffer_isFull(buffer)) return -1;
+static inline bool CircularBuffer_push(CircularBuffer_t *buffer, char c){
+    if (CircularBuffer_isFull(buffer)) return false;
 
     buffer->data[buffer->head] = c;
     buffer->head = (buffer->head + 1) % buffer->size;
-    return 0;
+    buffer->capacity++;
+    return true;
 }
 
-static inline int CircularBuffer_pop(CircularBuffer_t *buffer, char * c){
-    if (CircularBuffer_isEmpty(buffer)){
-        return -1;
-    }
+static inline bool CircularBuffer_pop(CircularBuffer_t *buffer, char * c){
+    if (CircularBuffer_isEmpty(buffer)) return false;
 
     *c = buffer->data[buffer->tail];
     buffer->tail = (buffer->tail + 1) % buffer->size;
-    return 0;
+    buffer->capacity--;
+    return true;
 }
 
-
+static inline uint8_t CircularBuffer_getCapaticy(CircularBuffer_t *buffer){
+    return buffer->capacity;
+}
 
 #endif

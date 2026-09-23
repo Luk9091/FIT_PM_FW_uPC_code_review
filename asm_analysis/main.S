@@ -132,15 +132,19 @@
 
 .org (PORTF_INT0_vect << 1)
     rjmp    PORTF_INT0_vect_isr             ; 104 PORTF External Interrupt 0
+                                            ; USART CTS PIN change
 
 .org (PORTF_INT1_vect << 1)
     rjmp     PORTF_INT1_vect_isr            ; 105 PORTF External Interrupt 1
+                                            ; PLL SPI LE
 
 .org (USARTF0_RXC_vect << 1)
     rjmp    USARTF0_RXC_vect_isr            ; 119 USARTF0_DATA Reception Complete Interrupt
+                                            ; Recv data from USART and store in buffer
 
 .org (USARTF0_DRE_vect << 1)
     rjmp    USARTF0_DRE_vect_isr            ; 120 USARTF0_DATA Data Register Empty Interrupt
+                                            ; Send string via USART by IRQ
 
 
 
@@ -1679,6 +1683,7 @@ CDCE62005_CTRL_RST_for_loop:                                ; data[10] = [
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
+; Note Rewrote in C
 ;undefined FUN_code_000710(void)
 .org (0x0710 << 1)
 PORTF_INT0_vect_isr:
@@ -1735,6 +1740,7 @@ LAB_code_00073a:
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
+; Note Rewrote in C
 ;undefined FUN_code_000744(void)
 ; Send character via interrupt
 .org (0x0744 << 1)
@@ -5301,6 +5307,7 @@ LAB_code_001379:
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
 .org (0x137c << 1)
+; Note Rewrote in C
 ; Parameters:
 ;   in R17 -- MSB value
 ;   in R16 -- LSB value
@@ -5328,6 +5335,7 @@ cli_send_16bit_hex:
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
+; Note Rewrote in C
 ; Convert digit to hex
 .org (0x1390 << 1)
 ; Parameters:
@@ -5529,6 +5537,7 @@ cli_send_newline:
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
+; Note Rewrote in C
 ;undefined FUN_code_001413(void)
 .org (0x1413 << 1)
 ; Parameters:
@@ -5547,6 +5556,7 @@ CLI_SEND_MSG_return:
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
+; Note Rewrote in C
 ;undefined FUN_code_00141b(void)
 .org (0x141b << 1)
 cli_get_next_byte:
@@ -5556,6 +5566,7 @@ cli_get_next_byte:
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
+; Note Rewrote in C
 ;undefined FUN_code_00141e(void)
 ; uint8_t RECV_CURRENT_CHAR_INDEX = *(0x2001)
 ; uint8_t RECV_MESSAGE_SIZE = *(0x2000)
@@ -5589,8 +5600,8 @@ CLI_GET_NEXT_nothing_receive:
     subi        R18,0xec
     andi        R18,0x3f
     cpse        R16,R18                                     ; if (recv_buf_capacity >= 20) {
-    ldi         R20,0x1                                     ;   MCU_Console_RTS = 1
-    sts         PORTF_OUTCLR,R20; }
+    ldi         R20,0x1                                     ;   MCU_Console_RTS = 0
+    sts         PORTF_OUTCLR,R20                            ; }
 CLI_GET_NEXT_ready_to_read:
     eor         R18,R18
     ldi         ZL,0x07
@@ -5622,6 +5633,7 @@ CLI_GET_NEXT_return:
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
+; Note Rewrote in C
 ;undefined FUN_code_001456(void)
 ; // Global:
 ; uint8_t SEND_CURRENT_CHAR_INDEX   = *(0x2002);

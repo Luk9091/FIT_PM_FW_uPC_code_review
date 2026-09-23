@@ -12,12 +12,19 @@ int main(){
     system_gpio_config();
     system_usart_config();
 
-    PMIC.CTRL |= PMIC_MEDLVLEN_bm | PMIC_LOLVLEN_bm;
+    // check power
+    system_interrupt_config();
     sei();
 
     while(1){
         LED_toggle(LED_SYSTEM_FAIL);
         cli_send_msg("Hello world\n\r");
-        _delay_ms(250);
+
+        char c = cli_get_next_char();
+        char str[] = {c, '\n', '\r', 0};
+        cli_send_msg("Recv char: ");
+        cli_send_msg(str);
     }
+
+    return 0;
 }

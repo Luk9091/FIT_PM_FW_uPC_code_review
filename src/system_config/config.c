@@ -75,8 +75,8 @@ static inline void system_port_f_config(){
     PORTF_DIRSET = 0x09;
     PORTF_PIN7CTRL = PORT_OPC_PULLDOWN_gc;
 
-    PORTF_INT0MASK = MCU_CONSOLE_CTS_bm;
-    PORTF_INT1MASK = 0x40;
+    PORTF_INT0MASK = USART_CTS_PIN_bm;
+    PORTF_INT1MASK = 0x40; // PLL SPI LE
 }
 
 void system_gpio_config(){
@@ -90,7 +90,7 @@ void system_gpio_config(){
 }
 
 void system_usart_config(){
-    usart_ready_to_receive(false);
+    usart_readyToReceive(false);
 
     PORTF.DIRSET = USART_RTS_PIN_bm | USART_TXD_PIN_bm;
     USARTF0.CTRLC =
@@ -117,6 +117,12 @@ void system_timer_0_config() {
     TCC0_CTRLB      = TC_WGMODE_NORMAL_gc;
     TCC0_CTRLE      = TC_BYTEM_NORMAL_gc;
     TCC0_INTCTRLA   = TC_OVFINTLVL_LO_gc;
+}
+
+void system_interrupt_config(){
+    // PORTE.INTCTRL = PORT_INT0LVL_LO_gc;
+    PORTF.INTCTRL = PORT_INT0LVL_MED_gc;
+    PMIC.CTRL |= PMIC_MEDLVLEN_bm | PMIC_LOLVLEN_bm;
 }
 
 void system_eeprom_config(){

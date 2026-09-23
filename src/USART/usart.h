@@ -15,12 +15,16 @@
 
 #define DRE_REQUEST_IRQ_LEVEL USART_DREINTLVL_MED_gc
 
-static inline void usart_ready_to_receive(bool ready) {
+static inline void usart_readyToReceive(bool ready) {
     if (ready) {
         USART_PORT.OUTCLR = USART_RTS_PIN_bm;
     } else {
         USART_PORT.OUTSET = USART_RTS_PIN_bm;
     }
+}
+
+static inline bool usart_isReadyToReceive(){
+    return !USART_PORT.OUT;
 }
 
 static inline void usart_txd_irq_enable(bool enable){
@@ -33,7 +37,12 @@ static inline void usart_txd_irq_enable(bool enable){
 
 
 void cli_send_msg(const char *msg);
+void cli_send_hex_digit(uint8_t value);
+void cli_send_hex_16bits(uint16_t value);
 void cli_send_msg_blocking(const char *msg);
 void cli_send_number_blocking(int8_t value);
+
+char cli_get_next_byte();
+char cli_get_next_char();
 
 #endif

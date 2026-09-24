@@ -4307,7 +4307,6 @@ LAB_code_00103f:
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
-; NOTE Rewrote in C
 ;undefined4 FUN_code_001053()
 .org (0x1053 << 1)
 ; Parameter:
@@ -4339,7 +4338,6 @@ DAC_set_value_CFD_threshold:
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
-; NOTE Rewrote in C
 ;undefined4 FUN_code_001068()
 .org (0x1068 << 1)
 ; Parameter:
@@ -4364,7 +4362,6 @@ DAC_set_value_ADC_delay:
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
-; NOTE Rewrote in C
 ;undefined3 FUN_code_001076(void)
 .org (0x1076 << 1)
 ; Parameter:
@@ -4387,7 +4384,6 @@ DAC_set_value_CFD_zero:
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
-; NOTE Rewrote in C
 ;undefined3 FUN_code_001082(void)
 .org (0x1082 << 1)
 ; Parameter:
@@ -4432,7 +4428,6 @@ check_fpga_is_ready:
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
-; NOTE Rewrote in C
 ;undefined FUN_code_001098(void)
 .org (0x1098 << 1)
 ; Multiplication function: x * a => y range from 0 to 65 535
@@ -4459,7 +4454,6 @@ DAC_multiplay_signed:                                               //
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
-; NOTE Rewrote in C
 ;undefined FUN_code_0010a6()
 .org (0x10a6 << 1)
 ; Description:
@@ -5184,9 +5178,12 @@ soft_spi_send_next_bit:
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
+; Note Rewrote in C
 ;undefined5 FUN_code_00131a()
 .org (0x131a << 1)
-; Out: R20:R21 -- int16_t
+; Out:
+;   R20:R21 -- int16_t
+;   Carry flag -- return status
 cli_get_integer:
     push        R22
     push        R17
@@ -5202,18 +5199,18 @@ cli_get_integer:
 CLI_GET_INT_get_next_char:
     rcall       cli_get_next_char                         ;undefined FUN_code_00141e(void)
     and         R18,R18
-    brbc        CPU_Z_bp, LAB_code_00132d
+    brbc        CPU_Z_bp, CLI_GET_INT_convert_char
     cpi         R16,'-'
-    brbc        CPU_Z_bp, LAB_code_00132d
-    inc         R19
+    brbc        CPU_Z_bp, CLI_GET_INT_convert_char
+    inc         R19                                         ; set negative flag
     inc         R18
     rjmp        CLI_GET_INT_get_next_char
-LAB_code_00132d:
+CLI_GET_INT_convert_char:
     inc         R18
     cpi         R16,'0'
-    brbs        CPU_S_bp, LAB_code_001341
+    brbs        CPU_S_bp, CLI_GET_INT_end_tokens
     cpi         R16, ('0' + 10)
-    brbc        CPU_S_bp, LAB_code_001341
+    brbc        CPU_S_bp, CLI_GET_INT_end_tokens
     mov         R22,R16
     subi        R22,'0'
     mul         R20,R17
@@ -5225,28 +5222,28 @@ LAB_code_00132d:
     mov         R20,R0
     mul         R17,R22
     and         R1,R1
-    brbc        CPU_Z_bp, LAB_code_00134e
+    brbc        CPU_Z_bp, CLI_GET_INT_return_fail
     add         R21,R0
     brbc        CPU_C_bp, CLI_GET_INT_get_next_char
-    rjmp        LAB_code_00134e
-LAB_code_001341:
+    rjmp        CLI_GET_INT_return_fail
+CLI_GET_INT_end_tokens:
     cpi         R18,0x1
-    brbs        CPU_Z_bp, LAB_code_00134e
+    brbs        CPU_Z_bp, CLI_GET_INT_return_fail
     and         R19,R19
-    brbs        CPU_Z_bp, LAB_code_00134c
+    brbs        CPU_Z_bp, CLI_GET_INT_return_success
     cpi         R18,0x2
-    brbs        CPU_Z_bp, LAB_code_00134e
+    brbs        CPU_Z_bp, CLI_GET_INT_return_fail
     eor         R19,R19
     neg         R20
     adc         R21,R19
     neg         R21
-    brbc        CPU_N_bp, LAB_code_00134e
-LAB_code_00134c:
+    brbc        CPU_N_bp, CLI_GET_INT_return_fail
+CLI_GET_INT_return_success:
     clc
-    rjmp        LAB_code_00134f
-LAB_code_00134e:
+    rjmp        CLI_GET_INT_return
+CLI_GET_INT_return_fail:
     bset        CPU_C_bp
-LAB_code_00134f:
+CLI_GET_INT_return:
     pop         R0
     pop         R1
     pop         R19
@@ -5257,8 +5254,13 @@ LAB_code_00134f:
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
+; Note Rewrote in C
 ;undefined FUN_code_001356(void)
 .org (0x1356 << 1)
+; get from cli 16 bit HEX value
+; Return:
+;   R21:R20 -- return hex value
+;   Carry flag -- return status, 0 - success, 1 - fail
 cli_get_hex:
     push        R22
     push        R18
@@ -5268,28 +5270,28 @@ cli_get_hex:
 cli_get_hex_next_char_loop:
     rcall       cli_get_next_char                         ;undefined FUN_code_00141e(void)
     mov         R22,R16
-    cpi         R16,0x30
+    cpi         R16,'0'
     brbs        CPU_C_bp, LAB_code_001374
     cpi         R16,':'
-    brbs        CPU_C_bp, LAB_code_001366
+    brbs        CPU_C_bp, LAB_code_001366               ; if (R16 > '9') jump
     cpi         R16,'A'
     brbs        CPU_C_bp, LAB_code_001374
     cpi         R16,'G'
     brbc        CPU_C_bp, LAB_code_001374
     subi        R22,'\a'
 LAB_code_001366:
-    subi        R22,0x30
+    subi        R22,'0'                                 ; R22 - '0'
     add         R20,R20
-    adc         R21,R21
+    adc         R21,R21                                 ; R21:R20 * 2
     add         R20,R20
-    adc         R21,R21
+    adc         R21,R21                                 ; R21:R20 * 2
     add         R20,R20
-    adc         R21,R21
+    adc         R21,R21                                 ; R21:R20 * 2
     add         R20,R20
-    adc         R21,R21
-    or          R20,R22
+    adc         R21,R21                                 ; R21:R20 * 2
+    or          R20,R22                                 ; R20 | R22
     inc         R18
-    cpi         R18,0x4
+    cpi         R18,4
     brbc        CPU_Z_bp, cli_get_hex_next_char_loop
     rcall       cli_get_next_char                         ;undefined FUN_code_00141e(void)
 LAB_code_001374:
@@ -5352,6 +5354,7 @@ LAB_code_001395:
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
+; Note Rewrote in C
 ;undefined FUN_code_001397(void)
 .org (0x1397 << 1)
 ; in R16-R17 - number
@@ -5363,6 +5366,7 @@ cli_send_float_round_2:
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
+; Note Rewrote in C
 ;undefined FUN_code_00139b(void)
 .org (0x139b << 1)
 ; in R16-R17 - number
@@ -5374,6 +5378,7 @@ cli_send_temperature:
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
+; Note Rewrote in C
 ;undefined FUN_code_00139f(void)
 .org (0x139f << 1)
 ; in R16-R17 - number
@@ -5385,6 +5390,7 @@ cli_send_delay:
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
+; Note Rewrote in C
 ;undefined FUN_code_0013a3(void)
 .org (0x13a3 << 1)
 ; in R16-R17 - number
@@ -5396,12 +5402,18 @@ cli_send_int16:
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
+; Note Rewrote in C
 ;undefined FUN_code_0013a7(void)
 .org (0x13a7 << 1)
 cli_send_uint16:
     push        R20
     eor         R20,R20
     clc
+;   rjmp        cli_send_number
+;************************************************************************************************
+;*                                           FUNCTION                                           *
+;************************************************************************************************
+; Note Rewrote in C
 ; Parameters:
 ; in R16-R17 - number
 ; in R20 - floating point
@@ -5527,6 +5539,7 @@ LAB_code_001404:
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
+; Note Rewrote in C
 ;undefined FUN_code_00140f(void)
 .org (0x140f << 1)
 cli_send_newline:
@@ -5572,7 +5585,7 @@ cli_get_next_byte:
 ; uint8_t RECV_MESSAGE_SIZE = *(0x2000)
 .org (0x141e << 1)
 ; Parameters:
-; out R18 - char
+; out R16 - char
 cli_get_next_char:
     push        R19
     eor         R19,R19

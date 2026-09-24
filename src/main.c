@@ -5,6 +5,7 @@
 #include "leds.h"
 #include "config.h"
 #include "usart.h"
+#include "fixPoint.h"
 
 
 int main(){
@@ -16,14 +17,28 @@ int main(){
     system_interrupt_config();
     sei();
 
-    while(1){
-        LED_toggle(LED_SYSTEM_FAIL);
-        cli_send_msg("Hello world\n\r");
 
-        char c = cli_get_next_char();
-        char str[] = {c, '\n', '\r', 0};
-        cli_send_msg("Recv char: ");
-        cli_send_msg(str);
+    while(1){
+        // uint16_t hexValue;
+        // if (cli_get_hex(&hexValue)){
+        //     cli_send_msg("Successful read: ");
+        //     cli_send_hex_16bits(hexValue);
+        // } else {
+        //     cli_send_msg("Invalid value!");
+        // }
+
+        int16_t value;
+        if (cli_get_integer(&value)){
+            cli_send_msg("Successful read: ");
+            cli_send_int16(value);
+            cli_send_msg(" | ");
+            cli_send_uint16(value);
+        } else {
+            cli_send_msg("Invalid value!");
+        }
+        cli_send_newLine();
+        LED_toggle(LED_SYSTEM_FAIL);
+        _delay_ms(250);
     }
 
     return 0;

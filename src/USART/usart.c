@@ -59,7 +59,7 @@ ISR(PORTF_INT0_vect){
     usart_isAbleToTransmit = 1;
 }
 
-inline static void cli_send_char(char c){
+inline static void usart_send_char(char c){
     while((USARTF0.STATUS & USART_DREIF_bm) == 0);
     USARTF0.DATA = c;
 #ifdef DEBUG
@@ -92,6 +92,11 @@ void cli_send_msg(const char *msg){
     }
 }
 
+void cli_send_newLine(){
+    cli_send_buffer('\r');
+    cli_send_buffer('\n');
+}
+
 void cli_send_hex_digit(uint8_t value){
     value = value & 0x0F;
     if (value > 9){
@@ -108,9 +113,54 @@ void cli_send_hex_16bits(uint16_t value){
     }
 }
 
+void cli_send_int16(int16_t value){
+    char buffer[7]; // MAX: 65 535
+    itoa(value, buffer, 10);
+    cli_send_msg(buffer);
+}
+
+void cli_send_uint16(uint16_t value){
+    char buffer[7]; // MAX: 65 535
+    utoa(value, buffer, 10);
+    cli_send_msg(buffer);
+}
+
+void cli_send_number(fixPoint_t value, const uint8_t round){
+    int8_t integer = FixPoint_getInteger(value);
+    uint16_t rawFraction = FixPoint_getFraction(value);
+    bool signedValue = integer < 0;
+    if (signedValue){
+        integer = integer + 1;
+    }
+
+    char integerBuffer[5];
+    char fractionBuffer[round + 1];
+    if (signedValue && integer == 0){
+        integerBuffer[0] = '-';
+        integerBuffer[1] = '0';
+        integerBuffer[2] = '\0';
+    } else {
+        itoa(integer, integerBuffer, 10);
+    }
+
+    uint8_t i = 0;
+    for (i = 0; i < round; i++){
+        rawFraction = rawFraction * 10;
+        uint8_t digit = (rawFraction / 256);
+        fractionBuffer[i] = '0' + digit;
+        rawFraction &= 0x00FF;
+    }
+    fractionBuffer[i] = '\0';
+
+    cli_send_msg(integerBuffer);
+    cli_send_buffer('.');
+    cli_send_msg(fractionBuffer);
+}
+
+// Blocking send
 void cli_send_msg_blocking(const char *msg){
     while(*msg){
-        cli_send_char(*msg++);
+        usart_send_char(*msg++);
     }
 }
 
@@ -120,7 +170,7 @@ void cli_send_number_blocking(int8_t value){
     itoa(value, tmp, 10);
     uint8_t i = 0;
     while(tmp[i]){
-        cli_send_char(tmp[i]);
+        usart_send_char(tmp[i]);
         i++;
     }
 }
@@ -161,4 +211,43 @@ char cli_get_next_char(){
         c = c - 'a' + 'A';
     }
     return c;
+}
+
+bool cli_get_hex(uint16_t *value){
+    for (uint8_t i = 0; i < 4; i++){
+        char c = cli_get_next_char();
+        if (c >= '0' && c <= '9'){
+            *value = (*value << 4) | (c - '0');
+        } else if (c >= 'A' && c <= 'F'){
+            *value = (*value << 4) | (c - 'A' + 10);
+        } else {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool cli_get_integer(int16_t *value){
+    bool isNegativ = false;
+    uint8_t counter = 0;
+    *value = 0;
+    while(true){
+        char c = cli_get_next_char();
+        if (counter == 0 && c == '-'){
+            isNegativ = true;
+        } else if (c >= '0' && c <= '9') {
+            *value = *value*10 + (c - '0');
+        } else {
+            break;
+        }
+        counter++;
+    }
+    if (isNegativ){
+        *value = -(*value);
+    }
+
+    if (counter < 1) return false;
+    if (isNegativ && counter < 2) return false;
+    return true;
 }

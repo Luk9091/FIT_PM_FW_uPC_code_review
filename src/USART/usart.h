@@ -5,6 +5,7 @@
 #include <avr/interrupt.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include "fixPoint.h"
 
 #define USART_PORT          PORTF
 #define USART_RTS_PIN_bm    (1 << 0)
@@ -37,12 +38,26 @@ static inline void usart_txd_irq_enable(bool enable){
 
 
 void cli_send_msg(const char *msg);
+void cli_send_newLine();
 void cli_send_hex_digit(uint8_t value);
 void cli_send_hex_16bits(uint16_t value);
+void cli_send_number(fixPoint_t fixPointValue, const uint8_t round);
+void cli_send_uint16(uint16_t value);
+void cli_send_int16(int16_t value);
+
+static inline void cli_send_delay(fixPoint_t value){
+    cli_send_number(value, 3);
+}
+static inline void cli_send_temperature(fixPoint_t value){
+    cli_send_number(value, 1);
+}
+
 void cli_send_msg_blocking(const char *msg);
 void cli_send_number_blocking(int8_t value);
 
 char cli_get_next_byte();
 char cli_get_next_char();
+bool cli_get_hex(uint16_t *value);
+bool cli_get_integer(int16_t *value);
 
 #endif

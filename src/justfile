@@ -10,6 +10,7 @@ FILES   := "\
     main.c \
     system_config/drivers/clksys_driver.c \
     system_config/config.c \
+    FixPoint/fixPoint.c \
  \
     CircularBuffer/circularBuffer.c \
  \
@@ -21,6 +22,7 @@ INCLUDES:= " \
     -I . \
     -I system_config/drivers \
     -I system_config \
+    -I FixPoint \
  \
     -I CircularBuffer \
  \

@@ -1,0 +1,46 @@
+#ifndef __ADT7311_REGISTER_MAP_H__
+#define __ADT7311_REGISTER_MAP_H__
+
+#define ADT7311_STATUS_REG_ADDR             0x00
+#define ADT7311_CONFIG_REG_ADDR             0x01
+#define ADT7311_TEMPERATURE_VALUE_REG_ADDR  0x02
+#define ADT7311_ID_REG_ADDR                 0x03
+#define ADT7311_T_CRIT_SETPOINT_REG_ADDR    0x04
+#define ADT7311_T_HYST_SETPOINT_REG_ADDR    0x05
+#define ADT7311_T_HIGH_SETPOINT_REG_ADDR    0x06
+#define ADT7311_T_LOW_SETPOINT_REG_ADDR     0x07
+
+// Set high when temperature BELOW T_LOW, and go back to low when T > (T_LOW + T_HYST)
+#define ADT7311_STATUS_REG_T_LOW_bp         (4)
+// Set high when temperature ABOVE T_HIGH, and go back to low when T < (T_HIGH - T_HYST)
+#define ADT7311_STATUS_REG_T_HIGH_bp        (5)
+// Set high when temperature ABOVE T_CRIT, and go back to low when T < (T_HIGH - T_HYST)
+#define ADT7311_STATUS_REG_T_CRIT_bp        (6)
+// Set LOW when data ready to read
+#define ADT7311_STATUS_REG_NRDY_bp          (7)
+
+
+
+// Two bits, prevent before false trigger
+#define ADT7311_CONFIG_REG_FAULT_QUEUE_bp   (0)
+#define ADT7311_CONFIG_REG_CT_PIN_POLAR_bp  (2)
+#define ADT7311_CONFIG_REG_INT_PIN_POLAR_bp (3)
+#define ADT7311_CONFIG_REG_INT_CT_MODE_bp   (4)
+#define ADT7311_CONFIG_REG_OPERATION_MODE_bp (5)
+#define ADT7311_CONFIG_REG_RESOLUTION_bp    (7)
+
+#define ADT7311_CONFIG_REG_INTERRUPT_MODE   (0 << ADT7311_CONFIG_REG_INT_CT_MODE_bp)
+#define ADT7311_CONFIG_REG_COMPARATOR_MODE  (1 << ADT7311_CONFIG_REG_INT_CT_MODE_bp)
+
+#define ADT7311_CONFIG_REG_MODE_CONTINUE    (0 << ADT7311_CONFIG_REG_OPERATION_MODE_bp)
+#define ADT7311_CONFIG_REG_MODE_ONE_SHOT    (1 << ADT7311_CONFIG_REG_OPERATION_MODE_bp)
+// Single sample Per Second
+#define ADT7311_CONFIG_REG_MODE_SPS         (2 << ADT7311_CONFIG_REG_OPERATION_MODE_bp)
+#define ADT7311_CONFIG_REG_MODE_SHUTDOWN    (3 << ADT7311_CONFIG_REG_OPERATION_MODE_bp)
+
+#define ADT7311_CONFIG_REG_RESOLUTION_13B   (0 << ADT7311_CONFIG_REG_RESOLUTION_bp)
+#define ADT7311_CONFIG_REG_RESOLUTION_16B   (1 << ADT7311_CONFIG_REG_RESOLUTION_bp)
+
+
+
+#endif

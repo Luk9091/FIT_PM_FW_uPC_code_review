@@ -157,6 +157,28 @@ void cli_send_number(fixPoint_t value, const uint8_t round){
     cli_send_msg(fractionBuffer);
 }
 
+void cli_send_unumber(uFixPoint_t value, const uint8_t round){
+    int8_t integer = FixPoint_getInteger(value);
+    uint16_t rawFraction = FixPoint_getFraction(value);
+
+    char integerBuffer[5];
+    itoa(integer, integerBuffer, 10);
+
+    char fractionBuffer[round + 1];
+    uint8_t i = 0;
+    for (i = 0; i < round; i++){
+        rawFraction = rawFraction * 10;
+        uint8_t digit = (rawFraction / 256);
+        fractionBuffer[i] = '0' + digit;
+        rawFraction &= 0x00FF;
+    }
+    fractionBuffer[i] = '\0';
+
+    cli_send_msg(integerBuffer);
+    cli_send_buffer('.');
+    cli_send_msg(fractionBuffer);
+}
+
 // Blocking send
 void cli_send_msg_blocking(const char *msg){
     while(*msg){

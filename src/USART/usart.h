@@ -42,6 +42,7 @@ void cli_send_newLine();
 void cli_send_hex_digit(uint8_t value);
 void cli_send_hex_16bits(uint16_t value);
 void cli_send_number(fixPoint_t fixPointValue, const uint8_t round);
+void cli_send_unumber(uFixPoint_t fixPointValue, const uint8_t round);
 void cli_send_uint16(uint16_t value);
 void cli_send_int16(int16_t value);
 

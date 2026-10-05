@@ -16,6 +16,7 @@ FILES   := "\
  \
     LEDs/leds.c \
     USART/usart.c \
+    ADT7311/adt7311.c \
 "
 
 INCLUDES:= " \
@@ -28,6 +29,7 @@ INCLUDES:= " \
  \
     -I LEDs \
     -I USART \
+    -I ADT7311 \
 "
 
 default: build

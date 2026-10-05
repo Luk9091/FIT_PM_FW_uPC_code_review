@@ -8,6 +8,7 @@
 #define FIX_POINT_SCALE         (1 << FIX_POINT_FRACTION_BITS)
 
 typedef int16_t fixPoint_t;
+typedef uint16_t uFixPoint_t;
 
 static inline fixPoint_t FixPoint_convert(bool isNegative, uint8_t integer, uint8_t fraction){
     fixPoint_t value = ((int16_t)integer << FIX_POINT_FRACTION_BITS) | fraction;
@@ -22,6 +23,10 @@ static inline uint8_t FixPoint_getFraction(fixPoint_t value){
     if (value < 0){
         value = -value;
     }
+    return (uint8_t)(value & 0xFF);
+}
+
+static inline uint8_t uFixPoint_getFraction(uFixPoint_t value){
     return (uint8_t)(value & 0xFF);
 }
 

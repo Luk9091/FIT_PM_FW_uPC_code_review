@@ -17,6 +17,11 @@ FILES   := "\
     LEDs/leds.c \
     USART/usart.c \
     ADT7311/adt7311.c \
+    FPGA_Communication/fpga_communication.c \
+    CDCE62005/cdce62005.c \
+    THS788/ths788.c \
+    DAC/dac.c \
+    DMA/dma.c \
 "
 
 INCLUDES:= " \
@@ -30,6 +35,11 @@ INCLUDES:= " \
     -I LEDs \
     -I USART \
     -I ADT7311 \
+    -I FPGA_Communication \
+    -I CDCE62005 \
+    -I THS788 \
+    -I DAC \
+    -I DMA \
 "
 
 default: build

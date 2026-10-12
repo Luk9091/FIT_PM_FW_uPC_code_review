@@ -36,6 +36,11 @@ static inline void usart_txd_irq_enable(bool enable){
     }
 }
 
+static inline bool usart_isAllowToTransmit(){
+    return !(USART_PORT.IN & USART_CTS_PIN_bm);
+}
+void usart_set_allowToTransmit(bool enable);
+
 
 void cli_send_msg(const char *msg);
 void cli_send_newLine();

@@ -11,7 +11,7 @@
 
 #define SEND_CURRENT_CHAR_INDEX     0x2002
 #define SEND_MESSAGE_SIZE           0x2003
-#define SEND_BUFFER_CAPACITY            0x2004
+#define SERIAL_ALLOW_SEND           0x2004
 #define SEND_BUFFER_ADDRESS         0x2047
 ; *SEND_BUFFER_SIZE = 63
 ; char SEND_buffer[SEND_BUFFER_SIZE]; // First address 0x2047
@@ -152,6 +152,7 @@
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
 ;undefined4 FUN_code_0000f1()
+; Destination address: 0x2439
 .org (0x00f1 << 1)
 DMA_CH1_vect_isr:
     push        ZH
@@ -1564,6 +1565,8 @@ system_deinit:
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
+; Note Rewrote in C
+; Note Needed to be tested
 ;undefined FUN_code_000688(void)
 .org (0x0688 << 1)
 system_init:
@@ -1634,17 +1637,19 @@ system_init_wait_until_dma_reset:
     ldi         R16,0x1
     sts         DMA_CH1_CTRLB,R16                   ; Low level interrupt
 
-    ldi         R16,0x8
+    ldi         R16,0x08
     ldi         R17,0x10
     eor         R18,R18
     eor         R19,R19
     cli
-    call        CDCE62005_send_control_settings ; Address = 0x8; Data = 0x00'00'10'0 ???? NOTE RESERVED should be 0
+    call        CDCE62005_send_control_settings ; Address = 0x8; Data = 0x00'00'10'0 -> exit synchronization state
     bset        CPU_I_bp
     ret
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
+; Note Rewrote in C
+; Note Needed to be tested
 ;undefined FUN_code_0006ee(void)
 .org (0x06ee << 1)
 CDCE62005_control_rst:
@@ -1705,7 +1710,7 @@ PORTF_INT0_vect_isr:
     ld          R17,-Z                          ; R17 = *(0x2003)
     ld          R16,-Z                          ; R16 = *(0x2002)
     cp          R16,R17
-    brbs        CPU_Z_bp, LAB_code_000739       ; if (*0x2003 == *0x2004) jump
+    brbs        CPU_Z_bp, LAB_code_000739       ; if (*0x2002 == *0x2003) jump
     lds         R18,USARTF0_STATUS              ;= ??
     sbrs        R18,0x5
     rjmp        PORTF_INT0_empty_usartf_data_reg
@@ -1748,7 +1753,7 @@ LAB_code_00073a:
 
 ; // Global:
 ; uint8_t *SEND_MESSAGE_SIZE  = *(0x2003);
-; uint8_t *SEND_BUFFER_SIZE   = *(0x2004);
+; uint8_t *SERIAL_ALLOW_TO_SEND   = *(0x2004);
 ; uint8_t *SEND_CURRENT_CHAR_INDEX  = *(0x2002);
 
 ; char SEND_buffer[SEND_BUFFER_SIZE]; // First address 0x2047
@@ -2052,15 +2057,18 @@ clear_RAM:
     sbrs        R16,0x1                         ; if (!PIN MCU_Console_CTS)
     inc         R25                             ; R25 = 1
     sts         0x2004,R25                      ; NOTE bool Serial_readyToSend = !PIN MCU_Console_CTS
+                                                ; Note Rewrote in C -------------------------------------------
 
     lds         R16,PORTE_IN                    ; NOTE Power in OK
     bst         R16,0x1                         ; T = PORTE & 0x02
     eor         R16,R16                         ; set R16 to 0
     bld         R16,0x0                         ; R16 b0 = PORTE_IN && 2 >> 1
-    sts         POWER_ERROR_CODE,R16                      ; NOTE bool power_nok = PORTE && 2 >> 1
+    sts         POWER_ERROR_CODE,R16            ; NOTE bool power_nok = PORTE && 2 >> 1
+
+                                                ; NOTE FIX: power on should be rewrote
 
     brbs        CPU_T_bp,power_is_not_ok        ; if (!power_nok) { // if power is ok
-    sbi         UPDATE_ERROR_STATUS_REGISTER,0x1              ;   UPDATE_ERROR_STATUS_REGISTER |= 1 << 1 //
+    sbi         UPDATE_ERROR_STATUS_REGISTER,0x1;   UPDATE_ERROR_STATUS_REGISTER |= 1 << 1 //
     ldi         R16,0x1                         ;
     sts         PORTA_OUTCLR,R16                ;   disable LED_SYS_FAIL
     rjmp        post_power_check                ;
@@ -2077,12 +2085,15 @@ post_power_check:
     sts         0x215e,R16                      ;= ??
     ldi         R16,0x3
     sts         0x215f,R16                      ;= ??
+                                                ; NOTE FIX: power on should be rewrote
+// Enable interrupt
     ldi         R16,0x1
     sts         PORTE_INTCTRL,R16               ; Enable interrupt LOW priority PORT E
     ldi         R16,0x2
     sts         PORTF_INTCTRL,R16               ; Enable interrupt MID priority PORT F
     ldi         R16,0x3
     sts         PMIC_CTRL,R16                   ; Enable interrupt level LOW and MID
+                                                ; Note Rewrote in C ------------------------------
     call        adt7311_faults_clr              ; Clear spi
     ldi         R16,0x8                         ; ADT7311 reg address: 0x01 | R/W = W
     ldi         R17,0x50                        ; Resolution 13 bit, mode = 1 SPS, Comparator mode
@@ -2095,7 +2106,7 @@ post_power_check:
     ldi         R17,0x0
     ldi         R18,0x1e                        ; 0x1E00 >> 7 = 60 | overheated limit
     call        adt7311_16bit_rw                ; adt7311_16bit_rw(address: 0x30, data: 0x1E00)
-
+                                                ; Note Rewrote in C ------------------------------
 
     ldi         ZL,0x63                         ; Z = 0x2163
     ldi         ZH,0x21                         ; Y = 0x1000 // EEPROM address
@@ -4308,17 +4319,18 @@ LAB_code_00103f:
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
+; Note Rewrote in C
 ;undefined4 FUN_code_001053()
 .org (0x1053 << 1)
 ; Parameter:
 ; R20, R21 - data
-; R22 -- device address
+; R22 -- device address (initial = 0)
 ; R24 -- sync channel address
 DAC_set_value_CFD_threshold:
     push        R18
     ldi         R18,0x0C                        ; decimal value / 256
     ldi         R19,0x02                        ; integer
-    rcall       DAC_multiply_with_top_limit                         ;undefined FUN_code_0010a6(undefined2...
+    rcall       DAC_multiply_with_top_limit     ;undefined FUN_code_0010a6(undefined2...
     ldi         ZL,0x63
     ldi         ZH,0x21
     eor         R20,R20
@@ -4339,6 +4351,7 @@ DAC_set_value_CFD_threshold:
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
+; Note Rewrote in C
 ;undefined4 FUN_code_001068()
 .org (0x1068 << 1)
 ; Parameter:
@@ -4354,7 +4367,7 @@ DAC_set_value_ADC_delay:
     movw        R20,R18                                 ; x = 20 000 - x
     ldi         R18,0x72                                ; decimal value / 256
     ldi         R19,0x02                                ; integer value
-    rcall       DAC_multiply_with_top_limit          ;undefined FUN_code_0010a6(undefined2...
+    rcall       DAC_multiply_with_top_limit             ;undefined FUN_code_0010a6(undefined2...
     add         R22,R22                                 ;
     add         R22,R22                                 ;
     rcall       dac_send_value                          ;undefined3 FUN_code_001155(undefined...
@@ -4363,6 +4376,7 @@ DAC_set_value_ADC_delay:
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
+; Note Rewrote in C
 ;undefined3 FUN_code_001076(void)
 .org (0x1076 << 1)
 ; Parameter:
@@ -4373,18 +4387,19 @@ DAC_set_value_CFD_zero:
     push        R18
     ldi         R18,0x88                                ; decimal value / 256
     ldi         R19,0x41                                ; integer value
-    rcall       DAC_multiplay_signed            ;undefined FUN_code_001098(void)
+    rcall       DAC_multiplay_signed                    ;undefined FUN_code_001098(void)
     ldi         R18,0x80
     eor         R17,R18
     add         R22,R22
     add         R22,R22
-    ori         R22,0x2
+    ori         R22,0x1
     rcall       dac_send_value                          ;undefined3 FUN_code_001155(undefined...
     pop         R18
     ret
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
+; Note Rewrote in C
 ;undefined3 FUN_code_001082(void)
 .org (0x1082 << 1)
 ; Parameter:
@@ -4395,7 +4410,7 @@ DAC_set_value_ADC_zero:
     push        R18
     ldi         R18,0x88                                ; decimal value / 256
     ldi         R19,0x41                                ; integer value
-    rcall       DAC_multiplay_signed            ;undefined FUN_code_001098(void)
+    rcall       DAC_multiplay_signed                    ;undefined FUN_code_001098(void)
     ldi         R18,0x80
     eor         R17,R18
     add         R22,R22
@@ -4429,6 +4444,7 @@ check_fpga_is_ready:
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
+; Note Rewrote in C
 ;undefined FUN_code_001098(void)
 .org (0x1098 << 1)
 ; Multiplication function: x * a => y range from 0 to 65 535
@@ -4437,7 +4453,7 @@ check_fpga_is_ready:
 ;   R21:R20 -- X - signed int
 ; Outputs:
 ;   R17:R16
-DAC_multiplay_signed:                                               //
+DAC_multiplay_signed:
     eor         R17,R17                         ; R17 = 0                   //
     mul         R18,R20                         ; R18 = R18 * R20           //
     sbrc        R0,0x7                          ; if (!(R0 & 1<<7))         //
@@ -4455,6 +4471,7 @@ DAC_multiplay_signed:                                               //
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
+; Note Rewrote in C
 ;undefined FUN_code_0010a6()
 .org (0x10a6 << 1)
 ; Description:
@@ -4647,7 +4664,7 @@ ths788_read_return:
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
-; Rewrite in C
+; Note Rewrite in C
 .org (0x1155 << 1)
 ; Params:
 ;   R22 Select output channel
@@ -4685,7 +4702,7 @@ LAB_code_001164:
 
     or          R22,R23                         ;
     ori         R22,0x10                        ; Write to buffer and load
-                                                ; R22 = (R22 & 0x0C) << 4 | ((R22 << 1) & 0x06) | 0x10
+                                                ; R22 = (R22 & 0x0C) << 6 | ((R22 << 1) & 0x06) | 0x10
 
     sts         PORTC_OUTCLR,R24                ; Write select DAC_SYNC channel
 
@@ -4919,6 +4936,8 @@ FPGA_read_update_request_F3_HIGH:
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
+; Note Rewrote in C
+; Note Needed to be tested
 ;undefined FUN_code_001243(void)
 .org (0x1243 << 1)
 ; Parameters:
@@ -4962,6 +4981,8 @@ CDCE62005_wait_spi_send_4:
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
+; Note Rewrote in C
+; Note Needed to be tested
 ;undefined FUN_code_001267(void)
 .org (0x1267 << 1)
 ; Parameters:
@@ -5015,6 +5036,8 @@ CDCE62005_READ_wait_4:
 ;************************************************************************************************
 ;*                                           FUNCTION                                           *
 ;************************************************************************************************
+; Note Rewrote in C
+; Note Needed to be tested
 ;undefined FUN_code_001298(void)
 .org (0x1298 << 1)
 fpga_send_mcu_timestamp:

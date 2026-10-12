@@ -8,6 +8,12 @@
 #include "clksys_driver.h"
 // #include "usart_driver.h"
 #include "usart.h"
+#include "cdce62005.h"
+
+#include "ths788.h"
+#include "fpga_communication.h"
+#include "dac.h"
+#include "dma.h"
 
 // #define F_CPU 32000000UL
 #define BSEL    131
@@ -76,7 +82,7 @@ static inline void system_port_f_config(){
     PORTF_PIN7CTRL = PORT_OPC_PULLDOWN_gc;
 
     PORTF_INT0MASK = USART_CTS_PIN_bm;
-    PORTF_INT1MASK = 0x40; // PLL SPI LE
+    PORTF_INT1MASK = CDCE62005_PLL_LOCK_PIN_bm;
 }
 
 void system_gpio_config(){
@@ -127,4 +133,37 @@ void system_interrupt_config(){
 
 void system_eeprom_config(){
     NVM_CTRLB = NVM_EEMAPEN_bm; // Enable EEPROM
+}
+
+static inline void system_init_gpio(){
+    THS788_chipSelect_disableAll();
+    THS788_reset(true);
+    FPGA_reset(true);
+    PORTB.DIRSET = FPGA_RESET_PIN_bm | THS788_RESET_PIN_bm | THS788_HSTROBE1_PIN_bp | THS788_HSTROBE2_PIN_bm | THS788_HSTROBE3_PIN_bm | THS788_SPI_MOSI_PIN_bm | THS788_SPI_CLK_PIN_bm;
+
+    DAC_chipSelect_disableAll();
+    PORTC.DIRSET =
+        DAC_SYNC_A_PIN_bm | DAC_SYNC_B_PIN_bm | DAC_SYNC_C_PIN_bm |
+        ADC_PLL_POWER_DOWN_PIN_bm | CPLD_EVENT_IN_PIN_bm |
+        CDCE62005_PLL_SPI_CLK_PIN_bm | CDCE62005_PLL_SPI_MISO_PIN_bm | CDCE62005_PLL_SPI_MOSI_PIN_bm; // The same pins for SPI are used in communications with DACs
+
+    FPGA_SPI_DATA_chipSelect(false);
+    PORTD.DIRSET =  FPGA_RESET_PIN_bm | FPGA_SPI_HMISO_PIN_bm;
+
+    CDCE62005_chipSelect(false);
+    PORTF.DIRSET = CDCE62005_SPI_CS_PIN_bm | CDCE62005_PLL_SYNC_PIN_bm;
+}
+
+static inline void system_init_spi(){
+    FPGA_SPI_config();
+    FPGA_HSPI_config();
+}
+
+void system_init(){
+    system_init_gpio();
+    system_init_spi();
+    system_init_dma_config();
+
+    // Exit the Synchronization state
+    CDCE62005_send_control_settings(CDCE62005_merge_address_with_data(0x08, 1 << CDCE62005_REG8_NSYNC_BIT_bp));
 }

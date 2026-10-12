@@ -15,6 +15,10 @@ static inline fixPoint_t FixPoint_convert(bool isNegative, uint8_t integer, uint
     return isNegative ? -value : value;
 }
 
+#define uFixPoint_converter(integer, fraction)  (\
+    (uFixPoint_t)(integer << FIX_POINT_FRACTION_BITS | fraction) \
+)
+
 static inline int8_t FixPoint_getInteger(fixPoint_t value){
     return (int8_t)(value >> FIX_POINT_FRACTION_BITS);
 }
@@ -29,5 +33,8 @@ static inline uint8_t FixPoint_getFraction(fixPoint_t value){
 static inline uint8_t uFixPoint_getFraction(uFixPoint_t value){
     return (uint8_t)(value & 0xFF);
 }
+
+uint16_t uFixPoint_multiplay_int16(uFixPoint_t fix, int16_t integer);
+int16_t uFixPoint_multiplay_int16_with_limit(uFixPoint_t fix, int16_t integer);
 
 #endif

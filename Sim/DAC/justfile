@@ -1,0 +1,18 @@
+default: build
+    #!/usr/bin/env bash
+    sleep 1
+    simavr --mcu atmega328p --freq 8000000 build/main.elf -g &
+    SIM_PID=$!
+    trap 'kill -9 $SIM_PID 2>/dev/null || true' EXIT
+    avr-gdb build/main.elf -x test.gdb
+
+build:
+    mkdir -p build
+    avr-gcc -std=c11 main.S -o build/main.elf -mmcu=atmega328p -DF_CPU=8000000UL -g
+
+gdb:
+    avr-gdb build/main.elf -x test.gdb
+
+
+sim: build
+    simavr --mcu atmega328p --freq 8000000 build/main.elf -g

@@ -25,7 +25,11 @@ static USART_BUFFER_t buffers = {
     .RX = {0, 0, RX_BUFFER_SIZE, RX_buffer, 0},
 };
 
-volatile static bool usart_isAbleToTransmit = 1; // FIX: Default to true; assume the PC is ready to receive data right after reset.
+volatile static bool usart_isAbleToTransmit = 0;
+
+void usart_set_allowToTransmit(bool enable){
+    usart_isAbleToTransmit = enable;
+}
 
 
 // --------------------------------------------------

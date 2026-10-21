@@ -145,7 +145,7 @@ static inline void system_init_gpio(){
     PORTC.DIRSET =
         DAC_SYNC_A_PIN_bm | DAC_SYNC_B_PIN_bm | DAC_SYNC_C_PIN_bm |
         ADC_PLL_POWER_DOWN_PIN_bm | CPLD_EVENT_IN_PIN_bm |
-        CDCE62005_PLL_SPI_CLK_PIN_bm | CDCE62005_PLL_SPI_MISO_PIN_bm | CDCE62005_PLL_SPI_MOSI_PIN_bm; // The same pins for SPI are used in communications with DACs
+        CDCE62005_PLL_SPI_CLK_PIN_bm | CDCE62005_PLL_SPI_MOSI_PIN_bm; // The same pins for SPI are used in communications with DACs
 
     FPGA_SPI_DATA_chipSelect(false);
     PORTD.DIRSET =  FPGA_RESET_PIN_bm | FPGA_SPI_HMISO_PIN_bm;
@@ -165,5 +165,5 @@ void system_init(){
     system_init_dma_config();
 
     // Exit the Synchronization state
-    CDCE62005_send_control_settings(CDCE62005_merge_address_with_data(0x08, 1 << CDCE62005_REG8_NSYNC_BIT_bp));
+    CDCE62005_send_control_settings(0x1008);
 }

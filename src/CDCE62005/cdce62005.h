@@ -3,7 +3,10 @@
 
 #include <stdbool.h>
 #include <avr/io.h>
+#include <util/delay.h>
+#include "usart.h"
 
+#define CDCE62005_CTRL_PORT             (PORTF)
 #define CDCE62005_SPI_CS_PIN_bm         (1 << 4)
 #define CDCE62005_PLL_SYNC_PIN_bm       (1 << 5)
 #define CDCE62005_PLL_LOCK_PIN_bm       (1 << 6)
@@ -15,18 +18,17 @@
 
 #define CDCE62005_REG8_NSYNC_BIT_bp     (8)
 
+void CDCE62005_send_control_settings(uint32_t data);
+uint32_t CDCE62005_read_register(uint8_t address);
+void CDCE62005_control_reset();
+bool CDCE62005_getLockTimeout(uint8_t timeout_ms);
+
 static inline uint32_t CDCE62005_merge_address_with_data(uint8_t address, uint32_t data){
     return (data << 4) | address & 0x0F;
 }
 
-static inline void CDC62005_send_raw_8bits(uint8_t data){
-    SPIC.DATA = data;
-    while(!(SPIC.STATUS & (1 << 7)));
-}
-static inline uint8_t CDCE62005_read_raw_8bits(){
-    SPIC.DATA = 0;
-    while(!(SPIC.STATUS & (1 << 7)));
-    return SPIC_DATA;
+static inline uint32_t CDCE62005_readStatusRegister(){
+    return CDCE62005_read_register(8);
 }
 
 static inline void CDCE62005_chipSelect(bool enable){
@@ -35,6 +37,18 @@ static inline void CDCE62005_chipSelect(bool enable){
     } else {
         PORTF.OUTSET = CDCE62005_SPI_CS_PIN_bm;
     }
+}
+
+static inline void CDCE62005_sync(bool synchronization){
+    if (synchronization) {
+        PORTF.OUTSET = CDCE62005_PLL_SYNC_PIN_bm;
+    } else {
+        PORTF.OUTCLR = CDCE62005_PLL_SYNC_PIN_bm;
+    }
+}
+
+static inline bool CDCE62005_getLockStatus(){
+    return PORTF.IN & CDCE62005_PLL_LOCK_PIN_bm;
 }
 
 static inline void CDCE62005_SPI_config(){
@@ -48,9 +62,5 @@ static inline void CDCE62005_SPI_config(){
         0 << SPI_MODE_gp    | // Sample: Rising, Setup: Falling
         1 << SPI_PRESCALER_gp;// CLK/16 -> 32MHz/8 = 4MHz
 }
-
-void CDCE62005_send_control_settings(uint32_t data);
-uint32_t CDCE62005_read_register(uint8_t address);
-void CDCE62005_control_reset();
 
 #endif
